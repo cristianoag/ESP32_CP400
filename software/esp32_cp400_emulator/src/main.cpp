@@ -1,5 +1,5 @@
 /******************************************************************************
- * Project      : ESP32-CoCo2-Emulator
+ * Project      : esp32_cp400_emulator
  * File         : main.cpp
  * Author       : Cedric Beaudoin
  * Created      : 2026-02-23
