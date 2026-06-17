@@ -1,0 +1,13 @@
+# KiCad backup and history files
+.history/
+*~
+*.bak
+*.kicad_pcb-bak
+*.kicad_sch-bak
+
+# KiCad project lock files
+*.kicad_prl
+
+# OS files
+.DS_Store
+Thumbs.db
