@@ -488,7 +488,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "esp32_coco2.kicad_pro",
+    "filename": "esp32_cp400.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -655,8 +655,8 @@
     "subpart_id_separator": 0,
     "top_level_sheets": [
       {
-        "filename": "esp32_coco2.kicad_sch",
-        "name": "esp32_coco2",
+        "filename": "esp32_cp400.kicad_sch",
+        "name": "esp32_cp400",
         "uuid": "58acfa95-733f-4879-b033-9675282a29ba"
       }
     ],
@@ -666,7 +666,7 @@
   "sheets": [
     [
       "58acfa95-733f-4879-b033-9675282a29ba",
-      "esp32_coco2"
+      "esp32_cp400"
     ]
   ],
   "text_variables": {},

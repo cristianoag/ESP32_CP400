@@ -6316,7 +6316,7 @@
 			(uuid "d94247b2-d711-438e-8077-0b36790d3352")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR014")
 					(unit 1)
@@ -6395,7 +6395,7 @@
 			(uuid "90026426-73f3-46b6-82f5-9784a03d79f3")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR02")
 					(unit 1)
@@ -6473,7 +6473,7 @@
 			(uuid "75defae7-95ac-4a1b-9aa9-7382a0c32f69")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR013")
 					(unit 1)
@@ -6555,7 +6555,7 @@
 			(uuid "bf3ffdd2-5f77-4508-bc0a-697340573847")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "R9")
 					(unit 1)
@@ -6656,7 +6656,7 @@
 			(uuid "06d2c1b3-ba49-438d-b885-97e210cd834f")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "J5")
 					(unit 1)
@@ -6738,7 +6738,7 @@
 			(uuid "c64a28bd-9a7c-4ce4-b644-ec884a936558")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "R7")
 					(unit 1)
@@ -6816,7 +6816,7 @@
 			(uuid "dac3aa7e-90ef-4a52-8a3d-c68f1572fda0")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR016")
 					(unit 1)
@@ -6894,7 +6894,7 @@
 			(uuid "2bae15a5-a93e-4f36-9d7f-d272cc4c3581")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR07")
 					(unit 1)
@@ -6974,7 +6974,7 @@
 			(uuid "ffab4173-8778-46a6-a464-8d7e49b6eeea")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "R5")
 					(unit 1)
@@ -7052,7 +7052,7 @@
 			(uuid "07e76113-9d63-4411-aa16-0cf0534f4b7b")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR08")
 					(unit 1)
@@ -7132,7 +7132,7 @@
 			(uuid "25b39555-98ac-4fd3-80da-d12fbbad29b7")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "C1")
 					(unit 1)
@@ -7211,7 +7211,7 @@
 			(uuid "f86156b1-2a9d-4392-b838-0cf08d3c5f35")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR04")
 					(unit 1)
@@ -7304,7 +7304,7 @@
 			(uuid "dcac6e75-d18f-4739-a3c8-734490980f80")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "J8")
 					(unit 1)
@@ -7384,7 +7384,7 @@
 			(uuid "b9da3fa1-b51d-41c6-bb75-83d1eaa4bdf6")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "R1")
 					(unit 1)
@@ -7591,7 +7591,7 @@
 			(uuid "76501518-948f-41bc-9642-4f027a93486f")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "U1")
 					(unit 1)
@@ -7678,7 +7678,7 @@
 			(uuid "12958855-8e1b-49f8-a16f-7b304ae49c64")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "J1")
 					(unit 1)
@@ -7756,7 +7756,7 @@
 			(uuid "be53723a-ef3d-477d-bdd9-a1b84205fad8")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR05")
 					(unit 1)
@@ -7834,7 +7834,7 @@
 			(uuid "4cdd7316-1f93-4e37-be56-478d53692775")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR010")
 					(unit 1)
@@ -7913,7 +7913,7 @@
 			(uuid "83070d93-0eea-413f-98e4-ac1500a467d6")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#FLG02")
 					(unit 1)
@@ -7991,7 +7991,7 @@
 			(uuid "4e6fb11a-75e4-46d0-a588-613bcef64046")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR012")
 					(unit 1)
@@ -8070,7 +8070,7 @@
 			(uuid "4c5f5211-66bb-4757-acc7-7d8d216132d0")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR03")
 					(unit 1)
@@ -8149,7 +8149,7 @@
 			(uuid "97d3af43-32b6-4eb1-a31d-43edad3019ec")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR01")
 					(unit 1)
@@ -8270,7 +8270,7 @@
 			(uuid "19789a56-c6f4-4a25-be55-7c42fdb0254f")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "J7")
 					(unit 1)
@@ -8348,7 +8348,7 @@
 			(uuid "788a4ea2-4ab5-477c-a376-c4f714a68590")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR09")
 					(unit 1)
@@ -8428,7 +8428,7 @@
 			(uuid "eeca0730-ad80-479c-9425-4f6a0e968a26")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "F1")
 					(unit 1)
@@ -8507,7 +8507,7 @@
 			(uuid "92ec4a6f-6390-4f13-abc7-109851974f24")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#FLG03")
 					(unit 1)
@@ -8585,7 +8585,7 @@
 			(uuid "41ddc749-0a0a-4114-928f-5da30aec966b")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR015")
 					(unit 1)
@@ -8665,7 +8665,7 @@
 			(uuid "03ce98f3-5664-4f18-a663-4060311b9c5a")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "R2")
 					(unit 1)
@@ -8745,7 +8745,7 @@
 			(uuid "ef56d4b1-45c7-46af-aa5a-a519abb27e54")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "R4")
 					(unit 1)
@@ -8823,7 +8823,7 @@
 			(uuid "02444528-e222-4425-ab0c-e8bbd9ec52c5")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR06")
 					(unit 1)
@@ -8902,7 +8902,7 @@
 			(uuid "94f313be-eb63-486f-a2a2-0169a9a0984a")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR017")
 					(unit 1)
@@ -8982,7 +8982,7 @@
 			(uuid "0d5c7526-69ea-4155-aead-6a7793018475")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "R3")
 					(unit 1)
@@ -9073,7 +9073,7 @@
 			(uuid "fa902527-6c20-43c7-b1ee-6c31e8dcfaa6")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "J4")
 					(unit 1)
@@ -9153,7 +9153,7 @@
 			(uuid "f14f18bb-28ef-4872-a708-ed6d91bb5e6d")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "J6")
 					(unit 1)
@@ -9245,7 +9245,7 @@
 			(uuid "5b4ea71f-894c-43e8-b95e-2626f78153f0")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "J3")
 					(unit 1)
@@ -9324,7 +9324,7 @@
 			(uuid "1b3134c2-fe85-4b3d-aeb5-24e0929c4fa0")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#FLG01")
 					(unit 1)
@@ -9404,7 +9404,7 @@
 			(uuid "4cba7926-55c5-4e26-bb5c-76c68f3f49e2")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "R6")
 					(unit 1)
@@ -9486,7 +9486,7 @@
 			(uuid "d6e969b5-212a-4f4f-b8e4-6a2fd3be4dda")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "R8")
 					(unit 1)
@@ -9578,7 +9578,7 @@
 			(uuid "10a5f052-fbbd-4805-95c2-7f9f4eaa9f11")
 		)
 		(instances
-			(project "esp32_coco2"
+			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "J2")
 					(unit 1)

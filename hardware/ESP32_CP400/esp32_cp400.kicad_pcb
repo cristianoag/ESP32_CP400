@@ -152,7 +152,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/28389e28-5d61-42cc-9b4c-3b1af8a410e2")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -297,7 +297,7 @@
 		(property ki_fp_filters "microSD*")
 		(path "/16f75e71-82cc-4404-beb6-1915628d32fc")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -693,7 +693,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/d8d3dfb3-4d05-4b4c-88aa-a7259b825ede")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -851,7 +851,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/ea71199a-9a65-4178-8e74-8d05060a7689")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -1000,7 +1000,7 @@
 		)
 		(path "/4b23f0ae-d9a0-47c4-801c-0f61e0f5e393")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -1578,7 +1578,7 @@
 		)
 		(path "/42a98891-36d7-4270-9c99-b87d22618b93")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(attr smd)
 		(duplicate_pad_numbers_are_jumpers no)
 		(fp_rect
@@ -1755,7 +1755,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/46f6308b-6ae4-42ec-99af-6fc6afe9d237")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -1904,7 +1904,7 @@
 		)
 		(path "/4bf8909b-c2ad-4e85-a3a0-a206f7b77686")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -2153,7 +2153,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/1597ed7c-c251-4f20-bb85-a3b165259109")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -2303,7 +2303,7 @@
 		(property ki_fp_filters "BarrelJack*")
 		(path "/de3a8037-7500-4095-94c2-ed4bebe56d08")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -2701,7 +2701,7 @@
 		(property ki_fp_filters "*Fuse*")
 		(path "/a7252727-669c-4b68-9376-c6882830d822")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -2845,7 +2845,7 @@
 		(property ki_fp_filters "USB*")
 		(path "/d9100e92-faf4-4b77-9b24-9c20446912af")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -3224,7 +3224,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/f18ec50f-f3fd-4666-8e37-861127b3addf")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -3382,7 +3382,7 @@
 		(property ki_fp_filters "CP_*")
 		(path "/3d6d131e-bed6-484b-8b1f-43c5de555d43")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -3829,7 +3829,7 @@
 		(property ki_fp_filters "DSUB*Pins*")
 		(path "/935ba249-f17a-4bd0-85e3-723ba4fc0bf4")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -4288,7 +4288,7 @@
 		(property ki_fp_filters "USB*")
 		(path "/f34f7714-1cc9-4674-bc15-a97c69e5408b")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -4667,7 +4667,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/1810bf23-26ef-4a5b-a0cc-c2b0499dcd64")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -4825,7 +4825,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/bc5ef85b-993c-421a-ae64-c4570b7d75f1")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -4983,7 +4983,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/bd809e34-c63c-4a17-ade9-a2c3049eb886")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
@@ -5127,7 +5127,7 @@
 		(property ki_fp_filters "USB*")
 		(path "/e50458a5-5cdb-4bb1-9e51-a19721923097")
 		(sheetname "/")
-		(sheetfile "esp32_coco2.kicad_sch")
+		(sheetfile "esp32_cp400.kicad_sch")
 		(units
 			(unit
 				(name "A")
