@@ -4,6 +4,15 @@
 	(generator_version "10.0")
 	(uuid "58acfa95-733f-4879-b033-9675282a29ba")
 	(paper "A4")
+	(title_block
+		(title "ESP32-CP400")
+		(date "2026-06-18")
+		(rev "1.0")
+		(company "The Retro Hacker")
+		(comment 2 "Commercial-ShareAlike 4.0 Internacional License")
+		(comment 3 "This work is licensed under a")
+		(comment 4 "ESP32 Clone Series")
+	)
 	(lib_symbols
 		(symbol "Connector:Barrel_Jack"
 			(pin_names
@@ -1614,6 +1623,348 @@
 						)
 					)
 					(number "5"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "Connector_Audio:AudioJack2_Ground"
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "J"
+				(at 0 8.89 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Value" "AudioJack2_Ground"
+				(at 0 6.35 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Footprint" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Audio Jack, 2 Poles (Mono / TS), Grounded Sleeve"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "audio jack receptacle mono phone headphone TS connector"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "Jack*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "AudioJack2_Ground_0_1"
+				(rectangle
+					(start -2.54 -2.54)
+					(end -3.81 0)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type outline)
+					)
+				)
+				(polyline
+					(pts
+						(xy 0 0) (xy 0.635 -0.635) (xy 1.27 0) (xy 2.54 0)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(rectangle
+					(start 2.54 3.81)
+					(end -2.54 -2.54)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type background)
+					)
+				)
+				(polyline
+					(pts
+						(xy 2.54 2.54) (xy -0.635 2.54) (xy -0.635 0) (xy -1.27 -0.635) (xy -1.905 0)
+					)
+					(stroke
+						(width 0.254)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "AudioJack2_Ground_1_1"
+				(pin passive line
+					(at 0 -5.08 90)
+					(length 2.54)
+					(name ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "G"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 5.08 2.54 180)
+					(length 2.54)
+					(name ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "S"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 5.08 0 180)
+					(length 2.54)
+					(name ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "T"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+			)
+			(embedded_fonts no)
+		)
+		(symbol "Device:C"
+			(pin_numbers
+				(hide yes)
+			)
+			(pin_names
+				(offset 0.254)
+			)
+			(exclude_from_sim no)
+			(in_bom yes)
+			(on_board yes)
+			(in_pos_files yes)
+			(duplicate_pin_numbers_are_jumpers no)
+			(property "Reference" "C"
+				(at 0.635 2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Value" "C"
+				(at 0.635 -2.54 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+					(justify left)
+				)
+			)
+			(property "Footprint" ""
+				(at 0.9652 -3.81 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Datasheet" ""
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "Description" "Unpolarized capacitor"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_keywords" "cap capacitor"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(property "ki_fp_filters" "C_*"
+				(at 0 0 0)
+				(show_name no)
+				(do_not_autoplace no)
+				(hide yes)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+			(symbol "C_0_1"
+				(polyline
+					(pts
+						(xy -2.032 0.762) (xy 2.032 0.762)
+					)
+					(stroke
+						(width 0.508)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -2.032 -0.762) (xy 2.032 -0.762)
+					)
+					(stroke
+						(width 0.508)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+			)
+			(symbol "C_1_1"
+				(pin passive line
+					(at 0 3.81 270)
+					(length 2.794)
+					(name ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "1"
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+				)
+				(pin passive line
+					(at 0 -3.81 90)
+					(length 2.794)
+					(name ""
+						(effects
+							(font
+								(size 1.27 1.27)
+							)
+						)
+					)
+					(number "2"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -4531,6 +4882,18 @@
 		(uuid "2f613ce4-2163-44c6-afa3-f05adf81b6b2")
 	)
 	(junction
+		(at 104.14 104.14)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "33bb9764-c03d-4cca-9c68-095e3a29491e")
+	)
+	(junction
+		(at 104.14 92.71)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "35e9a8fb-cefa-4b3a-93ef-276abfb24762")
+	)
+	(junction
 		(at 107.95 74.93)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -4553,6 +4916,12 @@
 		(diameter 0)
 		(color 0 0 0 0)
 		(uuid "5059da59-895c-4ed5-b7e5-c2b15ffbc22c")
+	)
+	(junction
+		(at 100.33 92.71)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "6dc06c41-7805-4d0d-923e-8fe8a7fdd285")
 	)
 	(junction
 		(at 52.07 43.18)
@@ -4655,6 +5024,10 @@
 	(no_connect
 		(at 152.4 68.58)
 		(uuid "034368ff-5ecc-406f-b781-cfdf885324a0")
+	)
+	(no_connect
+		(at 257.81 86.36)
+		(uuid "0d59f839-5906-470c-8127-362f49162b3b")
 	)
 	(no_connect
 		(at 33.02 92.71)
@@ -4769,12 +5142,18 @@
 		(uuid "f9bfb3c4-dd3c-4ed8-91b7-311a8422d448")
 	)
 	(no_connect
-		(at 119.38 92.71)
-		(uuid "f9e78e97-c247-4cb7-89f3-221905508cdb")
-	)
-	(no_connect
 		(at 152.4 116.84)
 		(uuid "fa4915f5-3057-407c-bce5-061971e2685a")
+	)
+	(wire
+		(pts
+			(xy 104.14 92.71) (xy 104.14 95.25)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "0533865c-92eb-4bcc-b405-b24a099f486e")
 	)
 	(wire
 		(pts
@@ -4898,6 +5277,16 @@
 	)
 	(wire
 		(pts
+			(xy 115.57 92.71) (xy 119.38 92.71)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "18357c01-e767-460e-a7be-215cdde65ddc")
+	)
+	(wire
+		(pts
 			(xy 152.4 106.68) (xy 196.85 106.68)
 		)
 		(stroke
@@ -4948,13 +5337,13 @@
 	)
 	(wire
 		(pts
-			(xy 254 74.93) (xy 254 86.36)
+			(xy 96.52 92.71) (xy 100.33 92.71)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "21e9faa4-36f0-4ed4-8694-a8e7e6ba7385")
+		(uuid "25b47c0f-654b-42e0-8cc9-a809114d0dfb")
 	)
 	(wire
 		(pts
@@ -5008,6 +5397,16 @@
 	)
 	(wire
 		(pts
+			(xy 100.33 92.71) (xy 104.14 92.71)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "2e49ae46-4d68-422e-8b6c-f8238cacf315")
+	)
+	(wire
+		(pts
 			(xy 97.79 72.39) (xy 97.79 77.47)
 		)
 		(stroke
@@ -5045,6 +5444,16 @@
 			(type default)
 		)
 		(uuid "3405a1a1-5946-45b0-baa0-e57bf0fe381a")
+	)
+	(wire
+		(pts
+			(xy 100.33 92.71) (xy 100.33 95.25)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "341b0bee-8da7-4d58-bafd-dd07c701cf9a")
 	)
 	(wire
 		(pts
@@ -5275,16 +5684,6 @@
 			(type default)
 		)
 		(uuid "5df0ad89-b2c7-4660-9e61-ce48917939c9")
-	)
-	(wire
-		(pts
-			(xy 257.81 86.36) (xy 254 86.36)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "5fa9c99a-4869-4a92-9423-a3354935aeac")
 	)
 	(wire
 		(pts
@@ -5528,6 +5927,16 @@
 	)
 	(wire
 		(pts
+			(xy 91.44 100.33) (xy 91.44 104.14)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8763c56b-fd3c-4e5c-8883-40809d7da85e")
+	)
+	(wire
+		(pts
 			(xy 232.41 36.83) (xy 232.41 50.8)
 		)
 		(stroke
@@ -5585,6 +5994,16 @@
 			(type default)
 		)
 		(uuid "913e5679-9bc2-4f61-8011-52d5c084ec5e")
+	)
+	(wire
+		(pts
+			(xy 91.44 104.14) (xy 104.14 104.14)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "92698798-15fd-461b-b09e-d07140e21b1f")
 	)
 	(wire
 		(pts
@@ -5665,6 +6084,16 @@
 			(type default)
 		)
 		(uuid "a2dc91ca-d073-46cb-b96f-0026ab8aaa66")
+	)
+	(wire
+		(pts
+			(xy 104.14 104.14) (xy 104.14 105.41)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "a787315d-3f7b-42b3-a37e-013159a7e758")
 	)
 	(wire
 		(pts
@@ -5778,6 +6207,16 @@
 	)
 	(wire
 		(pts
+			(xy 107.95 92.71) (xy 104.14 92.71)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "b843fa03-d17e-4c65-85a1-254fdc130c28")
+	)
+	(wire
+		(pts
 			(xy 187.96 78.74) (xy 200.66 78.74)
 		)
 		(stroke
@@ -5815,6 +6254,16 @@
 			(type default)
 		)
 		(uuid "c89494e0-e991-4ff3-8db1-5fc36fdab903")
+	)
+	(wire
+		(pts
+			(xy 104.14 102.87) (xy 104.14 104.14)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "c8f68cab-fc57-4e3f-b61e-bfa7cdfafe39")
 	)
 	(wire
 		(pts
@@ -6238,6 +6687,16 @@
 	)
 	(wire
 		(pts
+			(xy 96.52 95.25) (xy 100.33 95.25)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "fe0815ee-4053-4838-aaaf-e0f25ab99c5d")
+	)
+	(wire
+		(pts
 			(xy 107.95 74.93) (xy 119.38 74.93)
 		)
 		(stroke
@@ -6319,6 +6778,87 @@
 			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#PWR014")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:C")
+		(at 104.14 99.06 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(uuid "0636ff04-c32c-4ec4-a9fb-5477353219a6")
+		(property "Reference" "C2"
+			(at 107.95 109.2199 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "C"
+			(at 107.95 100.3299 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" "Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder"
+			(at 105.1052 102.87 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 104.14 99.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 104.14 99.06 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "2f4a6311-88ac-489b-8941-cad0abcf3282")
+		)
+		(pin "2"
+			(uuid "440339d3-c6d0-4b47-b65e-472cc3a1171c")
+		)
+		(instances
+			(project "esp32_cp400"
+				(path "/58acfa95-733f-4879-b033-9675282a29ba"
+					(reference "C2")
 					(unit 1)
 				)
 			)
@@ -6747,84 +7287,6 @@
 		)
 	)
 	(symbol
-		(lib_id "power:+5V")
-		(at 254 74.93 0)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "1b79a9c2-41a5-4b2f-8bf9-09ce2dbdbe5b")
-		(property "Reference" "#PWR016"
-			(at 254 78.74 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+5V"
-			(at 254 69.85 0)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" ""
-			(at 254 74.93 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 254 74.93 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+5V\""
-			(at 254 74.93 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "dac3aa7e-90ef-4a52-8a3d-c68f1572fda0")
-		)
-		(instances
-			(project "esp32_cp400"
-				(path "/58acfa95-733f-4879-b033-9675282a29ba"
-					(reference "#PWR016")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:GND")
 		(at 52.07 45.72 0)
 		(unit 1)
@@ -6977,6 +7439,86 @@
 			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "R5")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R")
+		(at 111.76 92.71 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "2e75c59d-e79a-4dbf-ad78-fc77a6513378")
+		(property "Reference" "R10"
+			(at 111.76 86.36 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "1k"
+			(at 111.76 88.9 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0805_2012Metric_Pad1.20x1.40mm_HandSolder"
+			(at 111.76 94.488 90)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 111.76 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 111.76 92.71 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "9f69a769-7825-4420-9264-90437aafe65a")
+		)
+		(pin "2"
+			(uuid "f4b7b6f4-7f88-4943-83cd-549c9f77470f")
+		)
+		(instances
+			(project "esp32_cp400"
+				(path "/58acfa95-733f-4879-b033-9675282a29ba"
+					(reference "R10")
 					(unit 1)
 				)
 			)
@@ -8437,6 +8979,89 @@
 		)
 	)
 	(symbol
+		(lib_id "Connector_Audio:AudioJack2_Ground")
+		(at 91.44 95.25 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "b71559b8-482d-40f2-9a45-74e611a7ddf2")
+		(property "Reference" "J9"
+			(at 90.805 86.36 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "AudioJack2_Ground"
+			(at 90.805 88.9 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "PJ307:PJ-307"
+			(at 91.44 95.25 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 91.44 95.25 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Audio Jack, 2 Poles (Mono / TS), Grounded Sleeve"
+			(at 91.44 95.25 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "G"
+			(uuid "157d6e42-57e4-4ceb-aa12-6eb5eae6f9a6")
+		)
+		(pin "S"
+			(uuid "2b44b583-a506-48ea-9fe8-1324b18d814e")
+		)
+		(pin "T"
+			(uuid "e0b93af8-beed-4a50-bd0e-83ea32229735")
+		)
+		(instances
+			(project "esp32_cp400"
+				(path "/58acfa95-733f-4879-b033-9675282a29ba"
+					(reference "J9")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:PWR_FLAG")
 		(at 52.07 43.18 90)
 		(unit 1)
@@ -8510,6 +9135,84 @@
 			(project "esp32_cp400"
 				(path "/58acfa95-733f-4879-b033-9675282a29ba"
 					(reference "#FLG03")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GND")
+		(at 104.14 105.41 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "ba25d431-f729-4fd3-92cc-912446c5d755")
+		(property "Reference" "#PWR011"
+			(at 104.14 111.76 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 104.14 110.49 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 104.14 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 104.14 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 104.14 105.41 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "da721a39-9550-47aa-8279-058987c17334")
+		)
+		(instances
+			(project "esp32_cp400"
+				(path "/58acfa95-733f-4879-b033-9675282a29ba"
+					(reference "#PWR011")
 					(unit 1)
 				)
 			)
