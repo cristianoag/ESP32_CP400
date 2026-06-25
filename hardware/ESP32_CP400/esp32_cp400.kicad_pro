@@ -240,7 +240,7 @@
       "internal_id": "",
       "mfg": "",
       "mpn": "",
-      "sch_revision": ""
+      "sch_revision": "1.0"
     },
     "layer_pairs": [],
     "layer_presets": [],
@@ -688,7 +688,7 @@
         "uuid": "58acfa95-733f-4879-b033-9675282a29ba"
       }
     ],
-    "used_designators": "U2,J8",
+    "used_designators": "",
     "variants": []
   },
   "sheets": [
