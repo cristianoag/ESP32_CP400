@@ -47,21 +47,21 @@ The ESP32 CP400 sits between two histories: Prologica's Brazilian CP400 family a
 ## Repository Layout
 
 ```text
-hardware/ESP32_CP400/          KiCad project for the ESP32 CP400 hardware
-hardware/ESP32_CP400/libraries Project-local KiCad symbols and footprints
+hardware/esp32_clones/         KiCad project for the generic ESP32 clone hardware
+hardware/esp32_clones/libraries Project-local KiCad symbols and footprints
 software/esp32_cp400_emulator/ PlatformIO firmware for the ESP32-S3 emulator
 case/                          Mechanical/case work area
 ```
 
 ## Hardware
 
-The KiCad project lives in `hardware/ESP32_CP400` and is named `esp32_cp400`.
+The KiCad project lives in `hardware/esp32_clones` and is named `esp32_clones`.
 
 The local KiCad libraries are organized inside:
 
 ```text
-hardware/ESP32_CP400/libraries/symbols
-hardware/ESP32_CP400/libraries/footprints
+hardware/esp32_clones/libraries/symbols
+hardware/esp32_clones/libraries/footprints
 ```
 
 The hardware design currently includes project-local footprints and symbols for the ESP32-S3 module, USB connectors, SD card socket, switches, and other board-level parts. The intent is to give the firmware a board that feels more like a small computer than a loose dev kit on a bench.
@@ -98,7 +98,7 @@ This project is under active development. Expect the hardware, pin mapping, emul
 
 Good entry points:
 
-- Open the KiCad project at `hardware/ESP32_CP400/esp32_cp400.kicad_pro`.
+- Open the KiCad project at `hardware/esp32_clones/esp32_clones.kicad_pro`.
 - Open the firmware workspace at `software/esp32_cp400_emulator/esp32_cp400_emulator.code-workspace`.
 - Review `software/esp32_cp400_emulator/platformio.ini` before building or uploading.
 
