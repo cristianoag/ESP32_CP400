@@ -33,7 +33,7 @@ extern bool ValidFirmwareFile(const char* filename);
 
 constexpr uint8_t MENU_X_ORIGIN = 6;
 constexpr uint8_t MENU_Y_ORIGIN = 8;
-constexpr uint16_t MENU_RIGHT_EDGE = 270;
+constexpr uint16_t MENU_RIGHT_EDGE = 271;
 constexpr uint16_t MENU_BOTTOM_EDGE = 239;
 constexpr uint16_t MENU_CONTENT_RIGHT = 264;
 
