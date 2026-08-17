@@ -1,12 +1,12 @@
 /******************************************************************************
  * Project      : esp32_cp400_emulator
- * File         : main.h
- * Author       : Cedric Beaudoin
- * Created      : 2026-02-23
+ * File         : CP400Emulator.h
+ * Last Updated : 2026-08-17
  *
- * Description  : Header
+ * Description  : Core CP400 emulator definitions, structures and declarations
  *
- * Copyright (c) 2026 Cedric Beaudoin
+ * Original work copyright (c) 2026 Cedric Beaudoin
+ * CP400 code and modifications copyright (c) 2026 The Retro Hacker
  *
  * Permission is granted for personal, non-commercial use only.
  * Commercial use, distribution, sublicensing, or modification
@@ -17,15 +17,15 @@
  ******************************************************************************/
 
 
-#ifndef __MAIN_H
-#define __MAIN_H
+#ifndef CP400_EMULATOR_H
+#define CP400_EMULATOR_H
 
 
 #include "driver/adc.h"
 #include "esp_adc_cal.h"
 #include "SD_MMC.h"
-#include "EmuMenu.h"
-#include "ROMS_Source.h"
+#include "CP400Menu.h"
+#include "CP400Roms.h"
 #include <EEPROM.h>
 //----------------------
 #define VSYNC_PORT GPIO_NUM_1
@@ -78,14 +78,14 @@ struct SpecialFunctionStruct
   bool V_Synch_Int_Enabled;
   uint16_t ROM_Offset; //Rom address offset wuen executing from ROM address.
   bool AnyKeypress;   //Global VAR for any keypress check;
-  bool CoCo2Mode;   //True at boot
-  bool CoCo2VideoMode;
+  bool CP400Mode;   //True at boot
+  bool CP400VideoMode;
   bool CPU_Speed;
-  uint8_t Coco2VideoGenMODE;
-  uint8_t Coco2GraphicMode;
-  bool CoCo2_32K_UPPER_ENABLED;
-  uint8_t Coco2ColorMode;
-  uint8_t Coco2VideoPageOffset_Registers;   //7 bits data of SET/CLR only offset register to do mult to final usable offset of Coco2VideoPageOffset
+  uint8_t CP400VideoGenMODE;
+  uint8_t CP400GraphicMode;
+  bool CP400_32K_UPPER_ENABLED;
+  uint8_t CP400ColorMode;
+  uint8_t CP400VideoPageOffset_Registers;   //7 bits data of SET/CLR only offset register to do mult to final usable offset of CP400VideoPageOffset
   uint16_t VideoEmulatorXpixels;   //define the number of X pixel to center the Emulation screen.
   bool is_JOY1_B1_WasPressed;
   bool is_JOY1_B2_WasPressed;
@@ -173,7 +173,7 @@ void DoCPU(void);
 #define VIDEO_MODE_640X240_4_3 3
 
 
-#define COCO2_GRAPH_OFFSET_LEN 512
+#define CP400_GRAPH_OFFSET_LEN 512
 //For Rom access
 #define ROM_OFFSET 0x8000
 //#define ROM_OFFSET 0
@@ -282,15 +282,15 @@ uint8_t MountFileSystem(void);
 void WriteDiskByte(uint32_t BytePos, uint8_t ByteData);
 uint8_t ReadDiskByte(uint32_t BytePos);
 
-bool ReadCoCoFile(const char* filename, uint8_t DriveNumber);
-bool WriteCoCoFile(const char* filename, uint8_t DriveNumber);
+bool ReadCP400DiskImage(const char* filename, uint8_t DriveNumber);
+bool WriteCP400DiskImage(const char* filename, uint8_t DriveNumber);
 bool SaveConfigToSD(void);
 bool LoadConfigFromSD(void);
 
 
 
 void InitPorts(void);
-uint8_t ReadCoCoButtons(void);
+uint8_t ReadCP400Buttons(void);
 uint8_t ReadJoysticks(uint8_t JoyNum);
 void CopyDiskToRamDisk(void);
 void DisplayVDGchar(uint8_t charNum, uint16_t Xpos, uint16_t Ypos);
@@ -299,8 +299,8 @@ void ManagePeripherals_Write(uint16_t address, uint8_t value);
 void ManagePeripherals_Read(uint16_t address);
 void ManageKeyboardScan(uint8_t value);
 void FillKeyboardMatrix(void);
-void CopyCoCo2ROMS(void);
-void CopyCoCo3ROMS(void);
+void CopyCP400ROMS(void);
+void CopyCoCo3ROMS(void); //Optional CoCo 3 compatibility ROMs, kept for reference/testing.
 
 void SetVideoMode(uint8_t VideoMode);
 void VideoCore(void *pvParameters);
@@ -310,16 +310,16 @@ void InitPeripherals_and_Others(void);
 
 //---------------Videos modes----------
 
-void Do_COCO2_GRAPHMODE_32X16_8X12(void);
-void Do_COCO2_GRAPHMODE_256X192X2(void);
-void Do_COCO2_GRAPHMODE_256X192X2_ARTEFACT(void);
-void Do_COCO2_GRAPHMODE_128X192X4(void);
-void Do_COCO2_GRAPHMODE_128X192X2(void);
-void Do_COCO2_GRAPHMODE_128X96X4(void);
-void Do_COCO2_GRAPHMODE_128X96X2(void);
-void Do_COCO2_GRAPHMODE_128X64X4(void);
-void Do_COCO2_GRAPHMODE_128X64X2(void);
-void Do_COCO2_GRAPHMODE_64X64X4(void);
+void RenderCP400GraphMode_32X16_8X12(void);
+void RenderCP400GraphMode_256X192X2(void);
+void RenderCP400GraphMode_256X192X2_Artefact(void);
+void RenderCP400GraphMode_128X192X4(void);
+void RenderCP400GraphMode_128X192X2(void);
+void RenderCP400GraphMode_128X96X4(void);
+void RenderCP400GraphMode_128X96X2(void);
+void RenderCP400GraphMode_128X64X4(void);
+void RenderCP400GraphMode_128X64X2(void);
+void RenderCP400GraphMode_64X64X4(void);
 
 
 

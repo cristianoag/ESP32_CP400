@@ -1,12 +1,12 @@
 /******************************************************************************
  * Project      : esp32_cp400_emulator
- * File         : EmuMenu.h
- * Author       : Cedric Beaudoin
- * Created      : 2026-02-23
+ * File         : CP400Menu.h
+ * Last Updated : 2026-08-17
  *
- * Description  : Header
+ * Description  : CP400 emulator on-screen menu system (disk, firmware, settings)
  *
- * Copyright (c) 2026 Cedric Beaudoin
+ * Original work copyright (c) 2026 Cedric Beaudoin
+ * CP400 code and modifications copyright (c) 2026 The Retro Hacker
  *
  * Permission is granted for personal, non-commercial use only.
  * Commercial use, distribution, sublicensing, or modification
@@ -17,8 +17,8 @@
  ******************************************************************************/
 
 
-#ifndef __EMU_MENU_H
-#define __EMU_MENU_H
+#ifndef CP400_MENU_H
+#define CP400_MENU_H
 
 #include <Arduino.h>
 #include <VGA.h>

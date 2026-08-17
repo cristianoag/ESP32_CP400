@@ -1,4 +1,25 @@
-#include "sd_read_write.h"
+/******************************************************************************
+ * Project      : esp32_cp400_emulator
+ * File         : FileSystemUtils.cpp
+ * Last Updated : 2026-08-17
+ *
+ * Description  : Generic SD card / LittleFS filesystem helper utilities
+ *                (list, create, read, write, rename, delete) used by the
+ *                CP400 emulator
+ *
+ * Original work copyright (c) 2026 Cedric Beaudoin
+ * CP400 code and modifications copyright (c) 2026 The Retro Hacker
+ *
+ * Permission is granted for personal, non-commercial use only.
+ * Commercial use, distribution, sublicensing, or modification
+ * for commercial purposes is strictly prohibited without
+ * prior written permission from the author.
+ * Please, keep this in the source code.
+ * All rights reserved.
+ ******************************************************************************/
+
+
+#include "FileSystemUtils.h"
 
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){
     Serial.printf("Listing directory: %s\n", dirname);

@@ -1,5 +1,25 @@
-#include "main.h"
-#include "Firmware_Updater.h"
+/******************************************************************************
+ * Project      : esp32_cp400_emulator
+ * File         : FirmwareUpdater.cpp
+ * Last Updated : 2026-08-17
+ *
+ * Description  : OTA firmware update helpers for flashing the CP400 emulator
+ *                firmware from the SD card
+ *
+ * Original work copyright (c) 2026 Cedric Beaudoin
+ * CP400 code and modifications copyright (c) 2026 The Retro Hacker
+ *
+ * Permission is granted for personal, non-commercial use only.
+ * Commercial use, distribution, sublicensing, or modification
+ * for commercial purposes is strictly prohibited without
+ * prior written permission from the author.
+ * Please, keep this in the source code.
+ * All rights reserved.
+ ******************************************************************************/
+
+
+#include "CP400Emulator.h"
+#include "FirmwareUpdater.h"
 #include <Update.h>
 #include "esp_ota_ops.h"
 #include "esp_heap_caps.h"

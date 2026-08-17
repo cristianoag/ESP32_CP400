@@ -1,12 +1,12 @@
 /******************************************************************************
  * Project      : esp32_cp400_emulator
- * File         : main.cpp
- * Author       : Cedric Beaudoin
- * Created      : 2026-02-23
+ * File         : CP400Emulator.cpp
+ * Last Updated : 2026-08-17
  *
- * Description  : Main Code
+ * Description  : CP400 emulator main code (CPU core, video, disk, peripherals)
  *
- * Copyright (c) 2026 Cedric Beaudoin
+ * Original work copyright (c) 2026 Cedric Beaudoin
+ * CP400 code and modifications copyright (c) 2026 The Retro Hacker
  *
  * Permission is granted for personal, non-commercial use only.
  * Commercial use, distribution, sublicensing, or modification
@@ -24,7 +24,7 @@
 #include "esp_timer.h"
 #include "esp_system.h"
 
-#include "main.h"
+#include "CP400Emulator.h"
 
 #include "ESP32S3vga.h"
 #include <GfxWrapper.h>
@@ -37,7 +37,7 @@
 //----------------------------USB STACK-------------------------------------
 
 #include <ESP32-USB-Soft-Host.h>
-#include "USB.h"
+#include "CP400Input.h"
 #define KEY_SHIFT_LEFT
 
 
@@ -187,7 +187,7 @@ struct DiskAccessStruct
   bool IsinReadProcess;
   bool IsInWriteProcess;
   bool NMI_Int_Started;
-  uint8_t NMI_Delay;    //To Allow the CoCo to read the last byte from the FD502 before the NMI.
+  uint8_t NMI_Delay;    //To Allow the CP400 to read the last byte from the FD502 before the NMI.
   uint16_t RW_Process_ByteRemainingCounter;
 };
 
@@ -205,7 +205,7 @@ DriveStruct Disk_Drive;
       {
         uint8_t t_data;
         ManagePeripherals_Read(address);
-      if (!sf.CoCo2_32K_UPPER_ENABLED)
+      if (!sf.CP400_32K_UPPER_ENABLED)
       {
         if ((address > 0x7fff))
         {
@@ -241,7 +241,7 @@ DriveStruct Disk_Drive;
           ManagePeripherals_Write(address , value);
 
 
-        if (!sf.CoCo2_32K_UPPER_ENABLED)
+        if (!sf.CP400_32K_UPPER_ENABLED)
         {
           if (address >0x7fff)
           {
@@ -269,7 +269,7 @@ DriveStruct Disk_Drive;
 
 
 
-bool ReadCoCoFile(const char* filename, uint8_t DriveNumber)
+bool ReadCP400DiskImage(const char* filename, uint8_t DriveNumber)
 {
     if (!SD_Card_Mounted)
     {
@@ -382,7 +382,7 @@ bool LoadConfigFromSD(void)
 }
 
 
-bool WriteCoCoFile(const char* filename, uint8_t DriveNumber)
+bool WriteCP400DiskImage(const char* filename, uint8_t DriveNumber)
 {
   //return true;
   if (!SD_Card_Mounted)
@@ -486,10 +486,10 @@ void CopyDiskToRamDisk(void)
     return;
   }
 
-  ReadCoCoFile((const char*)Disk_Drive.Name_Disk[0], 0);
-  ReadCoCoFile((const char*)Disk_Drive.Name_Disk[1], 1);
-  ReadCoCoFile((const char*)Disk_Drive.Name_Disk[2], 2);
-  ReadCoCoFile((const char*)Disk_Drive.Name_Disk[3], 3);
+  ReadCP400DiskImage((const char*)Disk_Drive.Name_Disk[0], 0);
+  ReadCP400DiskImage((const char*)Disk_Drive.Name_Disk[1], 1);
+  ReadCP400DiskImage((const char*)Disk_Drive.Name_Disk[2], 2);
+  ReadCP400DiskImage((const char*)Disk_Drive.Name_Disk[3], 3);
   
 }
 
@@ -508,13 +508,22 @@ Mode mode1 = Mode::MODE_320x240x60_4_3;
 Mode mode2 = Mode::MODE_640x240x60;
 Mode mode3 = Mode::MODE_640x240x60_4_3;
 
+#ifndef VIDEO_Y_OFFSET
+#define VIDEO_Y_OFFSET 24
+#endif
+
+#if VIDEO_Y_OFFSET < 0 || VIDEO_Y_OFFSET > 48
+#error "VIDEO_Y_OFFSET must be between 0 and 48"
+#endif
+
+constexpr uint16_t VIDEO_ACTIVE_HEIGHT = 192;
 
 
 
 uint8_t SCAN_Keyboard_Matrix[8][7];
 
 
-uint8_t ReadCoCoButtons(void)
+uint8_t ReadCP400Buttons(void)
 {
   uint8_t val1, val2;
   val1 = USB_DEV_CONTROL.JOY1_BUTT1;
@@ -632,17 +641,17 @@ void InitPeripherals_and_Others(void)
   sf.firq_pin = true; //True = disabled
   sf.irq_pin = true; //True = disabled
   sf.V_Synch = false;
-  sf.CoCo2_32K_UPPER_ENABLED = false;
+  sf.CP400_32K_UPPER_ENABLED = false;
   sf.ROM_Offset = ROM_OFFSET;
   sf.AnyKeypress = false; //Used for Keyboard Scan.
   
   sf.CPU_Speed = CPU_SLOW;
-  sf.Coco2VideoGenMODE = 255;    //To reset in first execution
-  sf.Coco2VideoPageOffset_Registers = 0b00000010; //Init to be at address 400 (Even if Basic set it at boot)
-  sf.Coco2ColorMode = 0;
+  sf.CP400VideoGenMODE = 255;    //To reset in first execution
+  sf.CP400VideoPageOffset_Registers = 0b00000010; //Init to be at address 400 (Even if Basic set it at boot)
+  sf.CP400ColorMode = 0;
   sf.VideoEmulatorXpixels = 320;
   sf.Artefact = true; //Artefact mode by default.
-  sf.Coco2GraphicMode = 0;
+  sf.CP400GraphicMode = 0;
 
   sf.is_JOY1_B1_WasPressed = false;
   sf.is_JOY1_B2_WasPressed = false;
@@ -660,7 +669,7 @@ void InitPeripherals_and_Others(void)
 
   
   
-  CopyCoCo2ROMS();
+  CopyCP400ROMS();
   //CopyCoCo3ROMS();
 	
   CopyDiskToRamDisk();
@@ -729,7 +738,7 @@ void SetVideoMode(uint8_t VideoMode)
     if(!vga->Reinit(pins, mode0, 8)) while(1) delay(1);
     break;
     case VIDEO_MODE_320X240_4_3:
-      sf.VideoEmulatorXpixels = 380;
+      sf.VideoEmulatorXpixels = mode1.hRes;
       if(!vga->Reinit(pins, mode1, 8)) while(1) delay(1);
     break;
     case VIDEO_MODE_640X240_16_9:
@@ -956,24 +965,24 @@ void loop()
 }
 
 
-#define COCO2_GRAPHMODE_32X16_8X12 0b0 //Text 32x16
-#define COCO2_GRAPHMODE_256X192X2 0b11110110  //PMODE 4
-#define COCO2_GRAPHMODE_128X192X4 0b11100110  //PMODE 3  OK
+#define CP400_GRAPH_MODE_32X16_8X12 0b0 //Text 32x16
+#define CP400_GRAPH_MODE_256X192X2 0b11110110  //PMODE 4
+#define CP400_GRAPH_MODE_128X192X4 0b11100110  //PMODE 3  OK
 
 
-#define COCO2_GRAPHMODE_128X192X2 0b11010101  //PMODE 2
-#define COCO2_GRAPHMODE_128X96X4 0b11000100  //PMODE 1
-#define COCO2_GRAPHMODE_128X96X4_1 0b11110100  //PMODE 1 Other mode??
+#define CP400_GRAPH_MODE_128X192X2 0b11010101  //PMODE 2
+#define CP400_GRAPH_MODE_128X96X4 0b11000100  //PMODE 1
+#define CP400_GRAPH_MODE_128X96X4_1 0b11110100  //PMODE 1 Other mode??
 
 
-#define COCO2_GRAPHMODE_128X96X2 0b10110011  //PMODE 0
+#define CP400_GRAPH_MODE_128X96X2 0b10110011  //PMODE 0
 
 
-//---------Other modes in assembly language only, not officialy supported in Basic Coco 2
-#define COCO2_GRAPHMODE_128X64X4 0b10100010  //
-#define COCO2_GRAPHMODE_128X64X2 0b10010001  //
+//---------Other modes in assembly language only, not officialy supported in Basic CP400
+#define CP400_GRAPH_MODE_128X64X4 0b10100010  //
+#define CP400_GRAPH_MODE_128X64X2 0b10010001  //
 
-#define COCO2_GRAPHMODE_64X64X4 0b10000001  //
+#define CP400_GRAPH_MODE_64X64X4 0b10000001  //
 
 
 #ifdef DEBUG_ALL
@@ -1004,53 +1013,53 @@ void IRAM_ATTR VideoCore(void *pvParameters)
 
 
 
-    ModeValue = sf.Coco2GraphicMode & 0b11110111;    //Remove the Color bit
+    ModeValue = sf.CP400GraphicMode & 0b11110111;    //Remove the Color bit
     
     switch (ModeValue)
     {
     
-      case COCO2_GRAPHMODE_32X16_8X12:
-        Do_COCO2_GRAPHMODE_32X16_8X12();
+      case CP400_GRAPH_MODE_32X16_8X12:
+        RenderCP400GraphMode_32X16_8X12();
       break;
 
-      case COCO2_GRAPHMODE_256X192X2:
+      case CP400_GRAPH_MODE_256X192X2:
         if (sf.Artefact)
         {
-          Do_COCO2_GRAPHMODE_256X192X2_ARTEFACT();
+          RenderCP400GraphMode_256X192X2_Artefact();
         }
         else
         {
-          Do_COCO2_GRAPHMODE_256X192X2();
+          RenderCP400GraphMode_256X192X2();
         }
       break;
 
-      case COCO2_GRAPHMODE_128X192X4:
-        Do_COCO2_GRAPHMODE_128X192X4();
+      case CP400_GRAPH_MODE_128X192X4:
+        RenderCP400GraphMode_128X192X4();
       break;
 
-      case COCO2_GRAPHMODE_128X192X2:
-        Do_COCO2_GRAPHMODE_128X192X2();
+      case CP400_GRAPH_MODE_128X192X2:
+        RenderCP400GraphMode_128X192X2();
       break;
 
-      case COCO2_GRAPHMODE_128X96X4:
-      case COCO2_GRAPHMODE_128X96X4_1:  
-      Do_COCO2_GRAPHMODE_128X96X4();
+      case CP400_GRAPH_MODE_128X96X4:
+      case CP400_GRAPH_MODE_128X96X4_1:
+      RenderCP400GraphMode_128X96X4();
       break;
 
-      case COCO2_GRAPHMODE_128X96X2:
-        Do_COCO2_GRAPHMODE_128X96X2();
+      case CP400_GRAPH_MODE_128X96X2:
+        RenderCP400GraphMode_128X96X2();
       break;
 
-      case COCO2_GRAPHMODE_128X64X4:
-        Do_COCO2_GRAPHMODE_128X64X4();
+      case CP400_GRAPH_MODE_128X64X4:
+        RenderCP400GraphMode_128X64X4();
       break;
 
-      case COCO2_GRAPHMODE_128X64X2:
-        Do_COCO2_GRAPHMODE_128X64X2();
+      case CP400_GRAPH_MODE_128X64X2:
+        RenderCP400GraphMode_128X64X2();
     break;
 
-    case COCO2_GRAPHMODE_64X64X4:
-      Do_COCO2_GRAPHMODE_64X64X4();
+    case CP400_GRAPH_MODE_64X64X4:
+      RenderCP400GraphMode_64X64X4();
 break;
 
       
@@ -1077,7 +1086,7 @@ break;
     if (sf.PHYSICAL_Drive_Must_Be_Saved)
     {
       DISKETTE_LED_ON();
-      WriteCoCoFile((const char*)Disk_Drive.Name_Disk[DiskAccess.DriveSelected],DiskAccess.DriveSelected);  
+      WriteCP400DiskImage((const char*)Disk_Drive.Name_Disk[DiskAccess.DriveSelected],DiskAccess.DriveSelected);
       DISKETTE_LED_OFF();
       sf.PHYSICAL_Drive_Must_Be_Saved = false;
     }
@@ -1087,30 +1096,30 @@ break;
 }
 
 
-void Do_COCO2_GRAPHMODE_64X64X4(void)
+void RenderCP400GraphMode_64X64X4(void)
 {
 
 
-  if (sf.Coco2VideoGenMODE != COCO2_GRAPHMODE_64X64X4)
+  if (sf.CP400VideoGenMODE != CP400_GRAPH_MODE_64X64X4)
   {
     vga->clear(0b11111111);
     vga->show();
     vga->clear(0b11111111);
     vga->show();
 
-    sf.Coco2VideoGenMODE = COCO2_GRAPHMODE_64X64X4;
+    sf.CP400VideoGenMODE = CP400_GRAPH_MODE_64X64X4;
   }
 
 
 
 
   
-  uint32_t MemLoop = sf.Coco2VideoPageOffset_Registers * COCO2_GRAPH_OFFSET_LEN;
+  uint32_t MemLoop = sf.CP400VideoPageOffset_Registers * CP400_GRAPH_OFFSET_LEN;
   uint16_t Xloop, Yloop, Yloop1;
   uint8_t Dot1bit[8];
   uint8_t Color[4];
   
-  if ((sf.Coco2GraphicMode & 0b00001000) == 0)
+  if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
     Color[0] = 0b00011100;  //Green
     Color[1] = 0b11111100;  //Yellow
@@ -1125,7 +1134,7 @@ void Do_COCO2_GRAPHMODE_64X64X4(void)
     Color[3] = 0b11101000;  //orange(buff)
   }  
 
-  for (Yloop = 24; Yloop <216; Yloop+=3)
+  for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop+=3)
   {
         for (Xloop = 32; Xloop <288 ; Xloop+=16)
     {
@@ -1209,29 +1218,29 @@ void Do_COCO2_GRAPHMODE_64X64X4(void)
 
 
 
-void Do_COCO2_GRAPHMODE_128X64X2(void)
+void RenderCP400GraphMode_128X64X2(void)
 {
   
   
-  if (sf.Coco2VideoGenMODE != COCO2_GRAPHMODE_128X64X2)
+  if (sf.CP400VideoGenMODE != CP400_GRAPH_MODE_128X64X2)
   {
     vga->clear(0b11111111);
     vga->show();
     vga->clear(0b11111111);
     vga->show();
 
-    sf.Coco2VideoGenMODE = COCO2_GRAPHMODE_128X64X2;
+    sf.CP400VideoGenMODE = CP400_GRAPH_MODE_128X64X2;
   }
 
 
   
 
-  uint32_t MemLoop = sf.Coco2VideoPageOffset_Registers * COCO2_GRAPH_OFFSET_LEN;
+  uint32_t MemLoop = sf.CP400VideoPageOffset_Registers * CP400_GRAPH_OFFSET_LEN;
   uint16_t Xloop, Yloop, Yloop1;
   uint8_t Dot1bit[8];
   uint8_t Color[2];
 
-  if ((sf.Coco2GraphicMode & 0b00001000) == 0)
+  if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
     Color[0] = 0b00000000;  //black
     Color[1] = 0b00011100; //green
@@ -1242,7 +1251,7 @@ void Do_COCO2_GRAPHMODE_128X64X2(void)
     Color[1] = 0xff;
   }  
 
-  for (Yloop = 24; Yloop <216; Yloop+=3)
+  for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop+=3)
   {
     for (Xloop = 32; Xloop <288 ; Xloop+=16)
     {
@@ -1338,26 +1347,26 @@ void Do_COCO2_GRAPHMODE_128X64X2(void)
 }
 
 
-void Do_COCO2_GRAPHMODE_128X64X4(void)
+void RenderCP400GraphMode_128X64X4(void)
 {
   
-  if (sf.Coco2VideoGenMODE != COCO2_GRAPHMODE_128X64X4)
+  if (sf.CP400VideoGenMODE != CP400_GRAPH_MODE_128X64X4)
   {
     vga->clear(0b11111111);
     vga->show();
     vga->clear(0b11111111);
     vga->show();
 
-    sf.Coco2VideoGenMODE = COCO2_GRAPHMODE_128X64X4;
+    sf.CP400VideoGenMODE = CP400_GRAPH_MODE_128X64X4;
   }
 
 
-  uint32_t MemLoop = sf.Coco2VideoPageOffset_Registers * COCO2_GRAPH_OFFSET_LEN;
+  uint32_t MemLoop = sf.CP400VideoPageOffset_Registers * CP400_GRAPH_OFFSET_LEN;
   uint16_t Xloop, Yloop, Yloop1;
   uint8_t Dot1bit[8];
   uint8_t Color[4];
   
-  if ((sf.Coco2GraphicMode & 0b00001000) == 0)
+  if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
     Color[0] = 0b00011100;  //Green
     Color[1] = 0b11111100;  //Yellow
@@ -1372,7 +1381,7 @@ void Do_COCO2_GRAPHMODE_128X64X4(void)
     Color[3] = 0b11101000;  //orange(buff)
   }  
 
-  for (Yloop = 24; Yloop <216; Yloop+=3)
+  for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop+=3)
   {
     for (Xloop = 32; Xloop <288 ; Xloop+=8)
     {
@@ -1431,28 +1440,28 @@ void Do_COCO2_GRAPHMODE_128X64X4(void)
 }
 
 
-void Do_COCO2_GRAPHMODE_128X96X2(void)
+void RenderCP400GraphMode_128X96X2(void)
 {
   
   
-  if (sf.Coco2VideoGenMODE != COCO2_GRAPHMODE_128X96X2)
+  if (sf.CP400VideoGenMODE != CP400_GRAPH_MODE_128X96X2)
   {
     vga->clear(0b11111111);
     vga->show();
     vga->clear(0b11111111);
     vga->show();
 
-    sf.Coco2VideoGenMODE = COCO2_GRAPHMODE_128X96X2;
+    sf.CP400VideoGenMODE = CP400_GRAPH_MODE_128X96X2;
   }
 
 
 
-  uint32_t MemLoop = sf.Coco2VideoPageOffset_Registers * COCO2_GRAPH_OFFSET_LEN;
+  uint32_t MemLoop = sf.CP400VideoPageOffset_Registers * CP400_GRAPH_OFFSET_LEN;
   uint16_t Xloop, Yloop, Yloop1;
   uint8_t Dot1bit[8];
   uint8_t Color[2];
 
-  if ((sf.Coco2GraphicMode & 0b00001000) == 0)
+  if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
     Color[0] = 0b00000000;  //black
     Color[1] = 0b00011100; //green
@@ -1463,7 +1472,7 @@ void Do_COCO2_GRAPHMODE_128X96X2(void)
     Color[1] = 0xff;
   }  
 
-  for (Yloop = 24; Yloop <216; Yloop+=2)
+  for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop+=2)
   {
         for (Xloop = 32; Xloop <288 ; Xloop+=16)
     {
@@ -1537,29 +1546,29 @@ void Do_COCO2_GRAPHMODE_128X96X2(void)
 }
 
 
-void Do_COCO2_GRAPHMODE_128X96X4(void)
+void RenderCP400GraphMode_128X96X4(void)
 {
 
 
-  if (sf.Coco2VideoGenMODE != COCO2_GRAPHMODE_128X96X4)
+  if (sf.CP400VideoGenMODE != CP400_GRAPH_MODE_128X96X4)
   {
     vga->clear(0b11111111);
     vga->show();
     vga->clear(0b11111111);
     vga->show();
 
-    sf.Coco2VideoGenMODE = COCO2_GRAPHMODE_128X96X4;
+    sf.CP400VideoGenMODE = CP400_GRAPH_MODE_128X96X4;
   }
 
 
 
 
-  uint32_t MemLoop = sf.Coco2VideoPageOffset_Registers * COCO2_GRAPH_OFFSET_LEN;
+  uint32_t MemLoop = sf.CP400VideoPageOffset_Registers * CP400_GRAPH_OFFSET_LEN;
   uint16_t Xloop, Yloop;
   uint8_t Dot1bit[8];
   uint8_t Color[4];
   
-  if ((sf.Coco2GraphicMode & 0b00001000) == 0)
+  if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
     Color[0] = 0b00011100;  //Green
     Color[1] = 0b11111100;  //Yellow
@@ -1580,7 +1589,7 @@ void Do_COCO2_GRAPHMODE_128X96X4(void)
     */
   }  
 
-  for (Yloop = 24; Yloop <216; Yloop+=2)
+  for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop+=2)
   {
     for (Xloop = 32; Xloop <288 ; Xloop+=8)
     {
@@ -1624,27 +1633,27 @@ void Do_COCO2_GRAPHMODE_128X96X4(void)
 }
 
 
-void Do_COCO2_GRAPHMODE_128X192X2(void)   
+void RenderCP400GraphMode_128X192X2(void)
 {
 
-  if (sf.Coco2VideoGenMODE != COCO2_GRAPHMODE_128X192X2)
+  if (sf.CP400VideoGenMODE != CP400_GRAPH_MODE_128X192X2)
   {
     vga->clear(0b11111111);
     vga->show();
     vga->clear(0b11111111);
     vga->show();
 
-    sf.Coco2VideoGenMODE = COCO2_GRAPHMODE_128X192X2;
+    sf.CP400VideoGenMODE = CP400_GRAPH_MODE_128X192X2;
   }
 
 
 
-  uint32_t MemLoop = sf.Coco2VideoPageOffset_Registers * COCO2_GRAPH_OFFSET_LEN;
+  uint32_t MemLoop = sf.CP400VideoPageOffset_Registers * CP400_GRAPH_OFFSET_LEN;
   uint16_t Xloop, Yloop;
   uint8_t Dot1bit[8];
   uint8_t Color[2];
 
-  if ((sf.Coco2GraphicMode & 0b00001000) == 0)
+  if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
     Color[0] = 0b00000000;  //black
     Color[1] = 0b00011100; //green
@@ -1655,7 +1664,7 @@ void Do_COCO2_GRAPHMODE_128X192X2(void)
     Color[1] = 0xff;
   }  
 
-  for (Yloop = 24; Yloop <216; Yloop++)
+  for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop++)
   {
     for (Xloop = (sf.VideoEmulatorXpixels-256)>>1; Xloop <sf.VideoEmulatorXpixels - ((sf.VideoEmulatorXpixels-256)>>1) ; Xloop+=16)
     {
@@ -1696,27 +1705,27 @@ void Do_COCO2_GRAPHMODE_128X192X2(void)
   }
 }
 
-void Do_COCO2_GRAPHMODE_128X192X4(void)
+void RenderCP400GraphMode_128X192X4(void)
 {
   
 
-  if (sf.Coco2VideoGenMODE != COCO2_GRAPHMODE_128X192X4)
+  if (sf.CP400VideoGenMODE != CP400_GRAPH_MODE_128X192X4)
   {
     vga->clear(0b11111111);
     vga->show();
     vga->clear(0b11111111);
     vga->show();
 
-    sf.Coco2VideoGenMODE = COCO2_GRAPHMODE_128X192X4;
+    sf.CP400VideoGenMODE = CP400_GRAPH_MODE_128X192X4;
     Serial.println("MODE");
   }
 
-  uint32_t MemLoop = sf.Coco2VideoPageOffset_Registers * COCO2_GRAPH_OFFSET_LEN;
+  uint32_t MemLoop = sf.CP400VideoPageOffset_Registers * CP400_GRAPH_OFFSET_LEN;
   uint16_t Xloop, Yloop;
   uint8_t Dot1bit[8];
   uint8_t Color[4];
   
-  if ((sf.Coco2GraphicMode & 0b00001000) == 0)
+  if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
     Color[0] = 0b00011100;  //Green
     Color[1] = 0b11111100;  //Yellow
@@ -1733,7 +1742,7 @@ void Do_COCO2_GRAPHMODE_128X192X4(void)
 
 
 
-  for (Yloop = 24; Yloop <216; Yloop++)
+  for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop++)
   {
     for (Xloop = 32; Xloop < 288 ; Xloop+=8)
     {
@@ -1760,23 +1769,23 @@ void Do_COCO2_GRAPHMODE_128X192X4(void)
 
 }
 
-void Do_COCO2_GRAPHMODE_256X192X2(void)
+void RenderCP400GraphMode_256X192X2(void)
 {
-  if (sf.Coco2VideoGenMODE != COCO2_GRAPHMODE_256X192X2)
+  if (sf.CP400VideoGenMODE != CP400_GRAPH_MODE_256X192X2)
   {
     vga->clear(0b11111111);
     vga->show();
     vga->clear(0b11111111);
     vga->show();
-    sf.Coco2VideoGenMODE = COCO2_GRAPHMODE_256X192X2;
+    sf.CP400VideoGenMODE = CP400_GRAPH_MODE_256X192X2;
   }
 
-  uint32_t MemLoop = (sf.Coco2VideoPageOffset_Registers * COCO2_GRAPH_OFFSET_LEN);
+  uint32_t MemLoop = (sf.CP400VideoPageOffset_Registers * CP400_GRAPH_OFFSET_LEN);
   uint16_t Xloop, Yloop;
   uint8_t Dot1bit[16];
   uint8_t Color[2];
 
-  if ((sf.Coco2GraphicMode & 0b00001000) == 0)
+  if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
     Color[0] = 0b00000000;  //black
     Color[1] = 0b00011100; //green
@@ -1787,7 +1796,7 @@ void Do_COCO2_GRAPHMODE_256X192X2(void)
     Color[1] = 0xff;
   }  
 
-  for (Yloop = 23; Yloop <216; Yloop++)
+  for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop++)
 
   {
     for (Xloop = 32; Xloop <288 ; Xloop+=16)
@@ -1836,18 +1845,18 @@ void Do_COCO2_GRAPHMODE_256X192X2(void)
   }
 }
 
-void IRAM_ATTR Do_COCO2_GRAPHMODE_256X192X2_ARTEFACT(void) 
+void IRAM_ATTR RenderCP400GraphMode_256X192X2_Artefact(void)
 {
-  if (sf.Coco2VideoGenMODE != COCO2_GRAPHMODE_256X192X2)
+  if (sf.CP400VideoGenMODE != CP400_GRAPH_MODE_256X192X2)
   {
     vga->clear(0b11111111);
     vga->show();
     vga->clear(0b11111111);
     vga->show();
-    sf.Coco2VideoGenMODE = COCO2_GRAPHMODE_256X192X2;
+    sf.CP400VideoGenMODE = CP400_GRAPH_MODE_256X192X2;
     
   }
-  uint32_t MemLoop = sf.Coco2VideoPageOffset_Registers * COCO2_GRAPH_OFFSET_LEN;
+  uint32_t MemLoop = sf.CP400VideoPageOffset_Registers * CP400_GRAPH_OFFSET_LEN;
   uint16_t Xloop, Yloop;
   uint8_t Dot1bit[8];
   uint8_t Color[4];
@@ -1861,7 +1870,7 @@ void IRAM_ATTR Do_COCO2_GRAPHMODE_256X192X2_ARTEFACT(void)
   Color[3] = 0b11111111;  // White
   uint8_t LinePrep[266];
   uint16_t LinePrepLoop;
-  for (Yloop = 24; Yloop <216; Yloop++)
+  for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop++)
   {
     Xcount = 0;
     DotCount = 0;
@@ -2172,10 +2181,10 @@ void IRAM_ATTR Do_COCO2_GRAPHMODE_256X192X2_ARTEFACT(void)
 }
 
 
-void Do_COCO2_GRAPHMODE_256X192X2_ARTEFACT_BACK(void) //(almost)
+void RenderCP400GraphMode_256X192X2_Artefact_Back(void) //(almost)
 {
      vga->clear(0b11111111);
-    uint32_t MemLoop = sf.Coco2VideoPageOffset_Registers * COCO2_GRAPH_OFFSET_LEN;
+    uint32_t MemLoop = sf.CP400VideoPageOffset_Registers * CP400_GRAPH_OFFSET_LEN;
     uint16_t Xloop, Yloop;
     uint8_t Dot1bit[8];
     uint8_t Color[4];
@@ -2186,7 +2195,7 @@ void Do_COCO2_GRAPHMODE_256X192X2_ARTEFACT_BACK(void) //(almost)
     Color[2] = 0b00000011;  // bleu
     Color[3] = 0b11111111;  // blanc
 
-    for (Yloop = 24; Yloop < 216; Yloop++)
+    for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop++)
     {
         for (Xloop = (sf.VideoEmulatorXpixels - X_OFFSET_32) >> 1; 
              Xloop < sf.VideoEmulatorXpixels - ((sf.VideoEmulatorXpixels - X_OFFSET_32) >> 1); 
@@ -2209,26 +2218,28 @@ void Do_COCO2_GRAPHMODE_256X192X2_ARTEFACT_BACK(void) //(almost)
 
 
 
-void Do_COCO2_GRAPHMODE_32X16_8X12(void)
+void RenderCP400GraphMode_32X16_8X12(void)
 {
-  if (sf.Coco2VideoGenMODE != COCO2_GRAPHMODE_32X16_8X12)
+  if (sf.CP400VideoGenMODE != CP400_GRAPH_MODE_32X16_8X12)
   {
     vga->clear(0b00000000);
     vga->show();
     vga->clear(0b00000000);
     vga->show();
-    sf.Coco2VideoGenMODE = COCO2_GRAPHMODE_32X16_8X12;
+    sf.CP400VideoGenMODE = CP400_GRAPH_MODE_32X16_8X12;
   }
-  gfx->fillRect(((sf.VideoEmulatorXpixels-X_OFFSET_32)>>1),24-1,256,192,VDG_GREEN);
+  gfx->fillRect(((sf.VideoEmulatorXpixels-X_OFFSET_32)>>1), VIDEO_Y_OFFSET - 1,
+                256, VIDEO_ACTIVE_HEIGHT, VDG_GREEN);
   gfx->setTextColor(0);
-  uint32_t MemLoop = sf.Coco2VideoPageOffset_Registers * COCO2_GRAPH_OFFSET_LEN;
+  uint32_t MemLoop = sf.CP400VideoPageOffset_Registers * CP400_GRAPH_OFFSET_LEN;
   uint8_t tmpchar;
   for (uint8_t Yloop = 0; Yloop !=16; Yloop++)
   {
     for (uint8_t Xloop = 0; Xloop != 32; Xloop++)
     {
       tmpchar = memory[MemLoop++];
-      DisplayVDGchar(tmpchar,Xloop*8+ ((sf.VideoEmulatorXpixels-X_OFFSET_32)>>1), Yloop*12+23);
+      DisplayVDGchar(tmpchar, Xloop * 8 + ((sf.VideoEmulatorXpixels - X_OFFSET_32) >> 1),
+                     Yloop * 12 + VIDEO_Y_OFFSET - 1);
     }
   }
 }
@@ -2236,7 +2247,7 @@ void Do_COCO2_GRAPHMODE_32X16_8X12(void)
 
 
 
-void CopyCoCo2ROMS1(void)
+void CopyCP400ROMS1(void)
 {
   uint32_t LoopRomSource, LoopRam1;
 
@@ -2274,7 +2285,9 @@ void CopyCoCo2ROMS1(void)
 }
 
 
-void CopyCoCo2ROMS(void)
+// Loads the active CP400 ROM set (extended BASIC, BASIC, disk controller ROM)
+// into emulated memory/ROM space.
+void CopyCP400ROMS(void)
 {
   uint32_t LoopRomSource, LoopRam1;
 
@@ -2312,6 +2325,8 @@ void CopyCoCo2ROMS(void)
 }
 
 
+// Optional CoCo 3 ROM loader, kept for compatibility/reference; not part of
+// the active CP400 emulation path (see CopyCP400ROMS()).
 void CopyCoCo3ROMS(void)
 {
   uint32_t LoopRom1, LoopRam1, LoopRomSource;
@@ -2397,7 +2412,7 @@ void ManagePeripherals_Read(uint16_t address)
     {
       ManageKeyboardScan(rom[ROM_FF02]);
       //Do the joystick stuff first
-      buttons = ReadCoCoButtons();
+      buttons = ReadCP400Buttons();
       
       if ((buttons & 0b00000001) == 0)
       {
@@ -2874,80 +2889,80 @@ void InitDisks(void)
       
 
       rom[ROM_FF22] = value;
-      sf.Coco2GraphicMode = (sf.Coco2GraphicMode & 0b00000111) | (value & 0b11111000);      
+      sf.CP400GraphicMode = (sf.CP400GraphicMode & 0b00000111) | (value & 0b11111000);
       
       break;
 
 
       //In the next decode, no need to store data at address because it's only set reset.  Address are not readables
     case M_FFC0:
-      sf.Coco2GraphicMode &=0b11111110;
+      sf.CP400GraphicMode &=0b11111110;
     break;
     case M_FFC1:
-      sf.Coco2GraphicMode |=0b00000001;
+      sf.CP400GraphicMode |=0b00000001;
     break;
     case M_FFC2:
-      sf.Coco2GraphicMode &=0b11111101;
+      sf.CP400GraphicMode &=0b11111101;
     break;
     case M_FFC3:
-      sf.Coco2GraphicMode |=0b00000010;
+      sf.CP400GraphicMode |=0b00000010;
     break;
 
     case M_FFC4:
-      sf.Coco2GraphicMode &=0b11111011;
+      sf.CP400GraphicMode &=0b11111011;
     break;
     case M_FFC5:
-      sf.Coco2GraphicMode |=0b00000100;
+      sf.CP400GraphicMode |=0b00000100;
     break;
     //--------------------Next are Address offset SET/RESET registers--------------------
     case M_FFC6:
-      sf.Coco2VideoPageOffset_Registers &=0b11111110; //Clear the bit
+      sf.CP400VideoPageOffset_Registers &=0b11111110; //Clear the bit
     break;
     case M_FFC7:
-    sf.Coco2VideoPageOffset_Registers |=0b00000001; //Set the bit
+    sf.CP400VideoPageOffset_Registers |=0b00000001; //Set the bit
     break;
     case M_FFC8:
-      sf.Coco2VideoPageOffset_Registers &=0b11111101; //Clear the bit
+      sf.CP400VideoPageOffset_Registers &=0b11111101; //Clear the bit
     break;
     case M_FFC9:
-    sf.Coco2VideoPageOffset_Registers |=0b00000010; //Set the bit
+    sf.CP400VideoPageOffset_Registers |=0b00000010; //Set the bit
     break;
     case M_FFCA:
-      sf.Coco2VideoPageOffset_Registers &=0b11111011; //Clear the bit
+      sf.CP400VideoPageOffset_Registers &=0b11111011; //Clear the bit
     break;
     case M_FFCB:
-    sf.Coco2VideoPageOffset_Registers |=0b00000100; //Set the bit
+    sf.CP400VideoPageOffset_Registers |=0b00000100; //Set the bit
     break;
     case M_FFCC:
-      sf.Coco2VideoPageOffset_Registers &=0b11110111; //Clear the bit
+      sf.CP400VideoPageOffset_Registers &=0b11110111; //Clear the bit
     break;
     case M_FFCD:
-    sf.Coco2VideoPageOffset_Registers |=0b00001000; //Set the bit
+    sf.CP400VideoPageOffset_Registers |=0b00001000; //Set the bit
     break;
     case M_FFCE:
-      sf.Coco2VideoPageOffset_Registers &=0b11101111; //Clear the bit
+      sf.CP400VideoPageOffset_Registers &=0b11101111; //Clear the bit
     break;
     case M_FFCF:
-    sf.Coco2VideoPageOffset_Registers |=0b00010000; //Set the bit
+    sf.CP400VideoPageOffset_Registers |=0b00010000; //Set the bit
     break;
     case M_FFD0:
-      sf.Coco2VideoPageOffset_Registers &=0b11011111; //Clear the bit
+      sf.CP400VideoPageOffset_Registers &=0b11011111; //Clear the bit
     break;
     case M_FFD1:
-    sf.Coco2VideoPageOffset_Registers |=0b00100000; //Set the bit
+    sf.CP400VideoPageOffset_Registers |=0b00100000; //Set the bit
     break;
     case M_FFD2:
-      sf.Coco2VideoPageOffset_Registers &=0b10111111; //Clear the bit
+      sf.CP400VideoPageOffset_Registers &=0b10111111; //Clear the bit
     break;
     case M_FFD3:
-    sf.Coco2VideoPageOffset_Registers |=0b01000000; //Set the bit
+    sf.CP400VideoPageOffset_Registers |=0b01000000; //Set the bit
     break;
 
     case M_FFDE:
-      sf.CoCo2_32K_UPPER_ENABLED = false;
+      sf.CP400_32K_UPPER_ENABLED = false;
     break;
     case M_FFDF:
-      sf.CoCo2_32K_UPPER_ENABLED = true;
+      sf.CP400_32K_UPPER_ENABLED = true;
     break;
 
 
@@ -2972,27 +2987,27 @@ void FillKeyboardMatrix(void)
   
   for (uint8_t loop1 = 0; loop1 !=8; loop1++)
   {
-    if (USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b01000000)
-    SCAN_Keyboard_Matrix[loop1][6] = ((USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b01000000) ^ 0b01111111);
+    if (USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b01000000)
+    SCAN_Keyboard_Matrix[loop1][6] = ((USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b01000000) ^ 0b01111111);
 
-    if (USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b00100000)
-        SCAN_Keyboard_Matrix[loop1][5] = ((USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b00100000) ^ 0b01111111);
+    if (USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b00100000)
+        SCAN_Keyboard_Matrix[loop1][5] = ((USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b00100000) ^ 0b01111111);
 
-    if (USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b00010000)
-        SCAN_Keyboard_Matrix[loop1][4] = ((USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b00010000) ^ 0b01111111);
+    if (USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b00010000)
+        SCAN_Keyboard_Matrix[loop1][4] = ((USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b00010000) ^ 0b01111111);
 
-    if (USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b00001000)
-        SCAN_Keyboard_Matrix[loop1][3] = ((USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b00001000) ^ 0b01111111);
+    if (USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b00001000)
+        SCAN_Keyboard_Matrix[loop1][3] = ((USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b00001000) ^ 0b01111111);
 
-    if (USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b00000100)
-        SCAN_Keyboard_Matrix[loop1][2] = ((USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b00000100) ^ 0b01111111);
+    if (USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b00000100)
+        SCAN_Keyboard_Matrix[loop1][2] = ((USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b00000100) ^ 0b01111111);
 
-    if (USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b00000010)
-        SCAN_Keyboard_Matrix[loop1][1] = ((USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b00000010) ^ 0b01111111);
+    if (USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b00000010)
+        SCAN_Keyboard_Matrix[loop1][1] = ((USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b00000010) ^ 0b01111111);
 
-    if (USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b00000001)
-        SCAN_Keyboard_Matrix[loop1][0] = ((USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] & 0b00000001) ^ 0b01111111);
-    if (USB_DEV_CONTROL.USB_CoCo_Key_Array[loop1] != 0)
+    if (USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b00000001)
+        SCAN_Keyboard_Matrix[loop1][0] = ((USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] & 0b00000001) ^ 0b01111111);
+    if (USB_DEV_CONTROL.USB_CP400_Key_Array[loop1] != 0)
     {
       sf.AnyKeypress = true; 
     }
@@ -3010,7 +3025,7 @@ void FillKeyboardMatrix(void)
     Val1 = value ^ 0b11111111;
     rom[ROM_FF00] |= 0b01111111;   //Reset to nothing to scan.
     
-    if (ReadCoCoButtons()==3 && !sf.is_JOY1_B1_WasPressed) //All buttons released and was not pressed
+    if (ReadCP400Buttons()==3 && !sf.is_JOY1_B1_WasPressed) //All buttons released and was not pressed
     {
       sf.is_LastKeyboardScanned = true;
       
@@ -3170,7 +3185,7 @@ void line(int x0, int y0, int x1, int y1, int rgb)
 }
 
 
-  //---------------------------------------USB STACK FOR COCO KEYBOARD MAPPING AND JOYSTICKS-----------------------
+  //---------------------------------------USB STACK FOR CP400 KEYBOARD MAPPING AND JOYSTICKS-----------------------
 
 
 
@@ -3259,7 +3274,7 @@ void Setup_USB(void)
 #define K_SHIFT 0x82
 #define K_CTRL 0x81
 #define K_ALT 0x84
-#define K_CAPS 0x0a  //SHIFT 0 on CoCo
+#define K_CAPS 0x0a  //SHIFT 0 on CP400
 
 #define K_UP 4
 #define K_DOWN 5
@@ -3353,7 +3368,7 @@ void fillKeysStruct(void)
     USB_DEV_CONTROL.ScanArray[0x36] = ',';
     USB_DEV_CONTROL.ScanArray[0x37] = '.';
     USB_DEV_CONTROL.ScanArray[0x38] = '/';
-    USB_DEV_CONTROL.ScanArray[0x39] = K_CAPS;  //SHIFT 0 on CoCo
+    USB_DEV_CONTROL.ScanArray[0x39] = K_CAPS;  //SHIFT 0 on CP400
 
     USB_DEV_CONTROL.ScanArray[0x52] = K_UP;
     USB_DEV_CONTROL.ScanArray[0x51] = K_DOWN;
@@ -3401,7 +3416,7 @@ void UpdateKeyMap(uint8_t * Data)
     SpecialKey = (((Data[0] >> 4) | (Data[0] & 0x0f)) | 0x80);
     for (uint8_t u = 0; u!=8; u++)
     {
-        USB_DEV_CONTROL.USB_CoCo_Key_Array[u] = 0;
+        USB_DEV_CONTROL.USB_CP400_Key_Array[u] = 0;
     }
     
 
@@ -3413,14 +3428,14 @@ void UpdateKeyMap(uint8_t * Data)
         switch (SpecialKey)
         {
         case K_SHIFT:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[7] |= lookupOR_6;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[7] |= lookupOR_6;
             
             break;
         case K_CTRL:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[4] |= lookupOR_6;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[4] |= lookupOR_6;
             break;
         case K_ALT:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[3] |= lookupOR_6;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[3] |= lookupOR_6;
             break;
         default:
             break;
@@ -3444,213 +3459,213 @@ void UpdateKeyMap(uint8_t * Data)
         switch (KeyTranslated)
         {
         case 'H':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[0] |= lookupOR_1;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[0] |= lookupOR_1;
             break;
         case 'P':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[0] |= lookupOR_2;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[0] |= lookupOR_2;
             break;
         case 'X':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[0] |= lookupOR_3;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[0] |= lookupOR_3;
             break;
         case '0':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[0] |= lookupOR_4;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[0] |= lookupOR_4;
             break;
         case '8':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[0] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[0] |= lookupOR_5;
             break;
         case K_ENTER:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[0] |= lookupOR_6;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[0] |= lookupOR_6;
             break;
         //-------------------------------------------
         case 'A':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[1] |= lookupOR_0;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[1] |= lookupOR_0;
             break;
         case 'I':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[1] |= lookupOR_1;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[1] |= lookupOR_1;
             break;
         case 'Q':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[1] |= lookupOR_2;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[1] |= lookupOR_2;
             break;
         case 'Y':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[1] |= lookupOR_3;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[1] |= lookupOR_3;
             break;
         case '1':
         case '!':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[1] |= lookupOR_4;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[1] |= lookupOR_4;
             break;
         case '9':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[1] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[1] |= lookupOR_5;
             break;
         case K_CLEAR:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[1] |= lookupOR_6;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[1] |= lookupOR_6;
             break;
         //-------------------------------------------
         case 'B':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[2] |= lookupOR_0;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[2] |= lookupOR_0;
             break;
         case 'J':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[2] |= lookupOR_1;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[2] |= lookupOR_1;
             break;
         case 'R':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[2] |= lookupOR_2;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[2] |= lookupOR_2;
             break;
         case 'Z':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[2] |= lookupOR_3;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[2] |= lookupOR_3;
             break;
         case '2':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[2] |= lookupOR_4;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[2] |= lookupOR_4;
             break;
         case K_ESC:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[2] |= lookupOR_6;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[2] |= lookupOR_6;
             break;
         //-------------------------------------------
         case 'C':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[3] |= lookupOR_0;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[3] |= lookupOR_0;
             break;
         case 'K':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[3] |= lookupOR_1;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[3] |= lookupOR_1;
             break;
         case 'S':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[3] |= lookupOR_2;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[3] |= lookupOR_2;
             break;
         case K_UP:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[3] |= lookupOR_3;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[3] |= lookupOR_3;
             break;
         case '3':
         case '#':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[3] |= lookupOR_4;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[3] |= lookupOR_4;
             break;
         case ';':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[3] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[3] |= lookupOR_5;
             break;
         //-------------------------------------------
         case 'D':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[4] |= lookupOR_0;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[4] |= lookupOR_0;
             break;
         case 'L':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[4] |= lookupOR_1;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[4] |= lookupOR_1;
             break;
         case 'T':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[4] |= lookupOR_2;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[4] |= lookupOR_2;
             break;
         case K_DOWN:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[4] |= lookupOR_3;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[4] |= lookupOR_3;
             break;
         case '4':
         case '$':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[4] |= lookupOR_4;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[4] |= lookupOR_4;
             break;
         case ',':
         case '<':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[4] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[4] |= lookupOR_5;
             break;
         //-------------------------------------------
         case 'E':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[5] |= lookupOR_0;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[5] |= lookupOR_0;
             break;
         case 'M':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[5] |= lookupOR_1;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[5] |= lookupOR_1;
             break;
         case 'U':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[5] |= lookupOR_2;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[5] |= lookupOR_2;
             break;
         case K_LEFT:
         case K_BACKSPACE:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[5] |= lookupOR_3;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[5] |= lookupOR_3;
             break;
         case '5':
         case '%':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[5] |= lookupOR_4;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[5] |= lookupOR_4;
             break;
         case '-':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[5] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[5] |= lookupOR_5;
             break;
         case K_F1:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[5] |= lookupOR_6;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[5] |= lookupOR_6;
             break;
         //-------------------------------------------
         case 'F':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[6] |= lookupOR_0;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[6] |= lookupOR_0;
             break;
         case 'N':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[6] |= lookupOR_1;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[6] |= lookupOR_1;
             break;
         case 'V':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[6] |= lookupOR_2;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[6] |= lookupOR_2;
             break;
         case K_RIGHT:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[6] |= lookupOR_3;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[6] |= lookupOR_3;
             break;
         case '6':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[6] |= lookupOR_4;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[6] |= lookupOR_4;
             break;
         case '.':
         case '>':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[6] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[6] |= lookupOR_5;
             break;
         case K_F2:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[6] |= lookupOR_6;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[6] |= lookupOR_6;
             break;
         //-------------------------------------------
         case 'G':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[7] |= lookupOR_0;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[7] |= lookupOR_0;
             break;
         case 'O':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[7] |= lookupOR_1;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[7] |= lookupOR_1;
             break;
         case 'W':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[7] |= lookupOR_2;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[7] |= lookupOR_2;
             break;
         case K_SPACE:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[7] |= lookupOR_3;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[7] |= lookupOR_3;
             break;
         case '7':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[7] |= lookupOR_4;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[7] |= lookupOR_4;
             break;
         case '/':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[7] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[7] |= lookupOR_5;
             break;
         case '&':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[6] |= lookupOR_4;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[6] |= lookupOR_4;
             break;
         case '?':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[7] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[7] |= lookupOR_5;
             break;
         case '@':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[0] |= lookupOR_0;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[0] |= lookupOR_0;
             ShiftDisabled = true;
             break;
         case '*':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[2] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[2] |= lookupOR_5;
             break;
         case '(':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[0] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[0] |= lookupOR_5;
             break;
         case ')':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[1] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[1] |= lookupOR_5;
             break;
         case '=':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[5] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[5] |= lookupOR_5;
             ForceShift = true;
             break;
         case '+':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[3] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[3] |= lookupOR_5;
             ForceShift = true;
             break;
         case K_CAPS:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[0] |= lookupOR_4;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[0] |= lookupOR_4;
             ForceShift = true;
             break;
         case ':':
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[2] |= lookupOR_5;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[2] |= lookupOR_5;
             ShiftDisabled = true;
             break;
         case K_APOSTROPHE:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[7] |= lookupOR_4;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[7] |= lookupOR_4;
             ForceShift = true;
             break;
         case K_QUOTE:
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[2] |= lookupOR_4;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[2] |= lookupOR_4;
             ForceShift = true;
             break;
 
@@ -3664,11 +3679,11 @@ void UpdateKeyMap(uint8_t * Data)
         }
         if (ShiftDisabled == true)
         {
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[7] &= lookupAND_6;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[7] &= lookupAND_6;
         }
         if (ForceShift == true)
         {
-            USB_DEV_CONTROL.USB_CoCo_Key_Array[7] |= lookupOR_6;
+            USB_DEV_CONTROL.USB_CP400_Key_Array[7] |= lookupOR_6;
         }
     }
 
@@ -3724,5 +3739,4 @@ void UpdateJoyMap(uint8_t * Data, uint8_t usbNum)
     }
 }
 
-//-----------------End USB COCO MAP--------------------------------------------
-
+//-----------------End USB CP400 MAP--------------------------------------------

@@ -1,12 +1,14 @@
 /******************************************************************************
  * Project      : esp32_cp400_emulator
- * File         : ROM_Source.h
- * Author       : Cedric Beaudoin
- * Created      : 2026-02-23
+ * File         : CP400Roms.h
+ * Last Updated : 2026-08-17
  *
- * Description  : Header COCO ROMS
+ * Description  : ROM and font images used to emulate the CP400 (fonts,
+ *                BASIC/extended BASIC/disk ROMs, plus optional CoCo 3
+ *                compatibility ROMs kept for reference/testing)
  *
- * Copyright (c) 2026 Cedric Beaudoin
+ * Original work copyright (c) 2026 Cedric Beaudoin
+ * CP400 code and modifications copyright (c) 2026 The Retro Hacker
  *
  * Permission is granted for personal, non-commercial use only.
  * Commercial use, distribution, sublicensing, or modification
@@ -16,8 +18,8 @@
  * All rights reserved.
  ******************************************************************************/
 
-#ifndef __ROMS_SOURCE_H
-#define __ROMS_SOURCE_H
+#ifndef CP400_ROMS_H
+#define CP400_ROMS_H
 
 #include <stdint.h>
 
@@ -2182,6 +2184,8 @@ const uint8_t bas12[8192] = {
 };
 
 
+// Optional CoCo 3 ROM image, kept for reference/compatibility testing only.
+// Not used by the CP400 emulation path (see CopyCoCo3ROMS()).
 const uint8_t coco3[32768] = {
 	0x45, 0x58, 0x8E, 0x80, 0xDE, 0xCE, 0x01, 0x2A, 0xC6, 0x0A, 0xBD, 0xA5,
 	0x9A, 0x8E, 0xB2, 0x77, 0xAF, 0x43, 0xAF, 0x48, 0x8E, 0x89, 0x4C, 0xBF,
@@ -4917,6 +4921,8 @@ const uint8_t coco3[32768] = {
 };
 
 
+// Optional CoCo 3 (patched variant) ROM image, kept for reference/compatibility
+// testing only. Not used by the CP400 emulation path (see CopyCoCo3ROMS()).
 const uint8_t coco3p[32768] = {
 	0x45, 0x58, 0x8E, 0x80, 0xDE, 0xCE, 0x01, 0x2A, 0xC6, 0x0A, 0xBD, 0xA5,
 	0x9A, 0x8E, 0xB2, 0x77, 0xAF, 0x43, 0xAF, 0x48, 0x8E, 0x89, 0x4C, 0xBF,

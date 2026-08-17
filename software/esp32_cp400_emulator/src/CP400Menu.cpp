@@ -1,12 +1,12 @@
 /******************************************************************************
  * Project      : esp32_cp400_emulator
- * File         : EmuMenu.cpp
- * Author       : Cedric Beaudoin
- * Created      : 2026-02-23
+ * File         : CP400Menu.cpp
+ * Last Updated : 2026-08-17
  * 
- * Description  : Emulation Menu
+ * Description  : CP400 emulator on-screen menu system (disk, firmware, settings)
  *
- * Copyright (c) 2026 Cedric Beaudoin
+ * Original work copyright (c) 2026 Cedric Beaudoin
+ * CP400 code and modifications copyright (c) 2026 The Retro Hacker
  *
  * Permission is granted for personal, non-commercial use only.
  * Commercial use, distribution, sublicensing, or modification
@@ -17,9 +17,9 @@
  ******************************************************************************/
 
 
-#include "EmuMenu.h"
-#include "main.h"
-#include "ROMS_Source.h"
+#include "CP400Menu.h"
+#include "CP400Emulator.h"
+#include "CP400Roms.h"
 
 extern uint8_t *MENU_Backup;
 extern uint8_t *MENU_BackupPage2;
@@ -30,6 +30,9 @@ extern void flashFromSD(const char* filename);
 extern void InitFilesystem(void);
 extern bool copyFile(const char* srcFilename, const char* destFilename);
 extern bool ValidFirmwareFile(const char* filename);
+
+constexpr uint8_t MAIN_MENU_X_OFFSET = 3;
+constexpr uint8_t MAIN_MENU_Y_OFFSET = 8;
 
 #ifdef PSRAM_EMU
 extern uint8_t *rom;
@@ -209,14 +212,7 @@ void PopulateDiskContent(const char *FileToLoad)
 
 void ClearFileList(void)
 {
-    for (uint8_t loop1 = 0; loop1 != 69; loop1++)
-    {
-        for (uint8_t loop2 = 0; loop2 != 12; loop2++)
-        {
-            FileArray.FileList[loop2][loop1] = 255;
-        }
-    }
-    return;
+    memset(FileArray.FileList, 0xFF, sizeof(FileArray.FileList));
 }
 void ClearFileBuffer(void)
 {
@@ -582,28 +578,30 @@ void DrawMainMenuOptions(void)
     vga->show();
     vga->clear(0);
     vga->show();
-    DrawText ("Main Menu:",0,0,0,0,255,0);
-    line(0,10,319,10,0b00011100);
+    DrawText("Main Menu:", 0, 0, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
+    line(MAIN_MENU_X_OFFSET, 10 + MAIN_MENU_Y_OFFSET,
+         319 + MAIN_MENU_X_OFFSET, 10 + MAIN_MENU_Y_OFFSET, 0b00011100);
 
-    DrawText ("D",0,2,0,0,255,0);
-    DrawText ("isk drive menu",1,2,0,0,0b11100000,0);
+    DrawText("D", 0, 2, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
+    DrawText("isk drive menu", 1, 2, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
 
-    DrawText ("F:",0,3,0,0,255,0);
-    DrawText ("irmware Upgrade menu",1,3,0,0,0b11100000,0);
+    DrawText("F:", 0, 3, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
+    DrawText("irmware Upgrade menu", 1, 3, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
 
-    DrawText ("A",0,4,0,0,255,0);
-    DrawText ("rtifact Colors (NTSC CoCo 2) is ",1,4,0,0,0b11100000,0);
+    DrawText("A", 0, 4, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
+    DrawText("rtifact Colors (NTSC CP400) is ", 1, 4,
+             MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
     if (sf.Artefact)
     {
-        DrawText ("ENABLED",33,4,0,0,0b00011100,0);
+        DrawText("ENABLED", 33, 4, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b00011100, 0);
     }
     else
     {
-        DrawText ("DISABLED",33,4,0,0,0b11100000,0);
+        DrawText("DISABLED", 33, 4, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
     }
     
-    DrawText ("R",0,25,0,0,255,0);
-    DrawText ("eboot ESP32-CoCo",1,25,0,0,0b11100000,0);
+    DrawText("R", 0, 25, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
+    DrawText("eboot CP400", 1, 25, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
     
     return;
 }
@@ -802,7 +800,7 @@ void DiskMenuChoose_1(uint8_t DriveNumber)
                 break;
         case MENU_ENTER:
                 snprintf((char*)Disk_Drive.Name_Disk[DriveNumber], sizeof(Disk_Drive.Name_Disk[DriveNumber]),"/%s", (char*)FileArray.FileBuffer[MenuPick]);
-                ReadCoCoFile((const char*)Disk_Drive.Name_Disk[DriveNumber], DriveNumber);        //Load into RAMDISK
+                ReadCP400DiskImage((const char*)Disk_Drive.Name_Disk[DriveNumber], DriveNumber);        //Load into RAMDISK
                 SaveConfigToSD();
                 return;
             break;
