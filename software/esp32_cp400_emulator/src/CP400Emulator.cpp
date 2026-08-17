@@ -538,8 +538,16 @@ Mode mode3 = Mode::MODE_640x240x60_4_3;
 #define VIDEO_Y_OFFSET 24
 #endif
 
+#ifndef VIDEO_GRAPHICS_X_OFFSET
+#define VIDEO_GRAPHICS_X_OFFSET 32
+#endif
+
 #if VIDEO_Y_OFFSET < 0 || VIDEO_Y_OFFSET > 48
 #error "VIDEO_Y_OFFSET must be between 0 and 48"
+#endif
+
+#if VIDEO_GRAPHICS_X_OFFSET < 0 || VIDEO_GRAPHICS_X_OFFSET > 70
+#error "VIDEO_GRAPHICS_X_OFFSET must be between 0 and 70"
 #endif
 
 constexpr uint16_t VIDEO_ACTIVE_HEIGHT = 192;
@@ -1147,22 +1155,22 @@ void RenderCP400GraphMode_64X64X4(void)
   
   if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
-    Color[0] = 0b00011100;  //Green
-    Color[1] = 0b11111100;  //Yellow
-    Color[2] = 0b00000011;  //Blue
-    Color[3] = 0b11100000;  //Red
+    Color[0] = RGB332ToVGAPacked(0b00011100);  //Green
+    Color[1] = RGB332ToVGAPacked(0b11111100);  //Yellow
+    Color[2] = RGB332ToVGAPacked(0b00000011);  //Blue
+    Color[3] = RGB332ToVGAPacked(0b11100000);  //Red
   }
   else
   {
-    Color[0] = 0xff; //blanc
-    Color[1] = 0b01011011;  //Turquoise
-    Color[2] = 0b11100011;  //lilas
-    Color[3] = 0b11101000;  //orange(buff)
+    Color[0] = RGB332ToVGAPacked(0xff); //blanc
+    Color[1] = RGB332ToVGAPacked(0b01011011);  //Turquoise
+    Color[2] = RGB332ToVGAPacked(0b11100011);  //lilas
+    Color[3] = RGB332ToVGAPacked(0b11101000);  //orange(buff)
   }  
 
   for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop+=3)
   {
-        for (Xloop = 32; Xloop <288 ; Xloop+=16)
+        for (Xloop = VIDEO_GRAPHICS_X_OFFSET; Xloop < VIDEO_GRAPHICS_X_OFFSET + 256; Xloop+=16)
     {
 
       Dot1bit[3] = (memory[MemLoop] >> 6) & 0b11;  // Bits 6-7
@@ -1268,18 +1276,18 @@ void RenderCP400GraphMode_128X64X2(void)
 
   if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
-    Color[0] = 0b00000000;  //black
-    Color[1] = 0b00011100; //green
+    Color[0] = RGB332ToVGAPacked(0b00000000);  //black
+    Color[1] = RGB332ToVGAPacked(0b00011100); //green
   }
   else
   {
-    Color[0] = 0x00;
-    Color[1] = 0xff;
+    Color[0] = RGB332ToVGAPacked(0x00);
+    Color[1] = RGB332ToVGAPacked(0xff);
   }  
 
   for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop+=3)
   {
-    for (Xloop = 32; Xloop <288 ; Xloop+=16)
+    for (Xloop = VIDEO_GRAPHICS_X_OFFSET; Xloop < VIDEO_GRAPHICS_X_OFFSET + 256; Xloop+=16)
     {
       Dot1bit[7] = ((memory[MemLoop]>>7) & 0b00000001);
       Dot1bit[6] = ((memory[MemLoop]>>6) & 0b00000001);
@@ -1394,22 +1402,22 @@ void RenderCP400GraphMode_128X64X4(void)
   
   if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
-    Color[0] = 0b00011100;  //Green
-    Color[1] = 0b11111100;  //Yellow
-    Color[2] = 0b00000011;  //Blue
-    Color[3] = 0b11100000;  //Red
+    Color[0] = RGB332ToVGAPacked(0b00011100);  //Green
+    Color[1] = RGB332ToVGAPacked(0b11111100);  //Yellow
+    Color[2] = RGB332ToVGAPacked(0b00000011);  //Blue
+    Color[3] = RGB332ToVGAPacked(0b11100000);  //Red
   }
   else
   {
-    Color[0] = 0xff; //blanc
-    Color[1] = 0b01011011;  //Turquoise
-    Color[2] = 0b11100011;  //lilas
-    Color[3] = 0b11101000;  //orange(buff)
+    Color[0] = RGB332ToVGAPacked(0xff); //blanc
+    Color[1] = RGB332ToVGAPacked(0b01011011);  //Turquoise
+    Color[2] = RGB332ToVGAPacked(0b11100011);  //lilas
+    Color[3] = RGB332ToVGAPacked(0b11101000);  //orange(buff)
   }  
 
   for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop+=3)
   {
-    for (Xloop = 32; Xloop <288 ; Xloop+=8)
+    for (Xloop = VIDEO_GRAPHICS_X_OFFSET; Xloop < VIDEO_GRAPHICS_X_OFFSET + 256; Xloop+=8)
     {
 
       Dot1bit[3] = (memory[MemLoop] >> 6) & 0b11;  // Bits 6-7
@@ -1489,18 +1497,18 @@ void RenderCP400GraphMode_128X96X2(void)
 
   if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
-    Color[0] = 0b00000000;  //black
-    Color[1] = 0b00011100; //green
+    Color[0] = RGB332ToVGAPacked(0b00000000);  //black
+    Color[1] = RGB332ToVGAPacked(0b00011100); //green
   }
   else
   {
-    Color[0] = 0x00;
-    Color[1] = 0xff;
+    Color[0] = RGB332ToVGAPacked(0x00);
+    Color[1] = RGB332ToVGAPacked(0xff);
   }  
 
   for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop+=2)
   {
-        for (Xloop = 32; Xloop <288 ; Xloop+=16)
+        for (Xloop = VIDEO_GRAPHICS_X_OFFSET; Xloop < VIDEO_GRAPHICS_X_OFFSET + 256; Xloop+=16)
     {
       Dot1bit[7] = ((memory[MemLoop]>>7) & 0b00000001);
       Dot1bit[6] = ((memory[MemLoop]>>6) & 0b00000001);
@@ -1596,28 +1604,28 @@ void RenderCP400GraphMode_128X96X4(void)
   
   if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
-    Color[0] = 0b00011100;  //Green
-    Color[1] = 0b11111100;  //Yellow
-    Color[2] = 0b00000011;  //Blue
-    Color[3] = 0b11100000;  //Red
+    Color[0] = RGB332ToVGAPacked(0b00011100);  //Green
+    Color[1] = RGB332ToVGAPacked(0b11111100);  //Yellow
+    Color[2] = RGB332ToVGAPacked(0b00000011);  //Blue
+    Color[3] = RGB332ToVGAPacked(0b11100000);  //Red
   }
   else
   {
-    Color[0] = 0b00000000;  // Black
-    Color[2] = 0b11100000;  // Red
-    Color[1] = 0b00000011;  // blue
-    Color[3] = 0b11111111;  // White
+    Color[0] = RGB332ToVGAPacked(0b00000000);  // Black
+    Color[2] = RGB332ToVGAPacked(0b11100000);  // Red
+    Color[1] = RGB332ToVGAPacked(0b00000011);  // blue
+    Color[3] = RGB332ToVGAPacked(0b11111111);  // White
     /*
-    Color[0] = 0xff; //blanc
-    Color[1] = 0b01011011;  //Turquoise
-    Color[2] = 0b11100011;  //lilas
-    Color[3] = 0b11101000;  //orange(buff)
+    Color[0] = RGB332ToVGAPacked(0xff); //blanc
+    Color[1] = RGB332ToVGAPacked(0b01011011);  //Turquoise
+    Color[2] = RGB332ToVGAPacked(0b11100011);  //lilas
+    Color[3] = RGB332ToVGAPacked(0b11101000);  //orange(buff)
     */
   }  
 
   for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop+=2)
   {
-    for (Xloop = 32; Xloop <288 ; Xloop+=8)
+    for (Xloop = VIDEO_GRAPHICS_X_OFFSET; Xloop < VIDEO_GRAPHICS_X_OFFSET + 256; Xloop+=8)
     {
 
       Dot1bit[3] = (memory[MemLoop] >> 6) & 0b11;  // Bits 6-7
@@ -1681,18 +1689,18 @@ void RenderCP400GraphMode_128X192X2(void)
 
   if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
-    Color[0] = 0b00000000;  //black
-    Color[1] = 0b00011100; //green
+    Color[0] = RGB332ToVGAPacked(0b00000000);  //black
+    Color[1] = RGB332ToVGAPacked(0b00011100); //green
   }
   else
   {
-    Color[0] = 0x00;
-    Color[1] = 0xff;
+    Color[0] = RGB332ToVGAPacked(0x00);
+    Color[1] = RGB332ToVGAPacked(0xff);
   }  
 
   for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop++)
   {
-    for (Xloop = (sf.VideoEmulatorXpixels-256)>>1; Xloop <sf.VideoEmulatorXpixels - ((sf.VideoEmulatorXpixels-256)>>1) ; Xloop+=16)
+    for (Xloop = VIDEO_GRAPHICS_X_OFFSET; Xloop < VIDEO_GRAPHICS_X_OFFSET + 256; Xloop+=16)
     {
       Dot1bit[7] = ((memory[MemLoop]>>7) & 0b00000001);
       Dot1bit[6] = ((memory[MemLoop]>>6) & 0b00000001);
@@ -1753,24 +1761,24 @@ void RenderCP400GraphMode_128X192X4(void)
   
   if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
-    Color[0] = 0b00011100;  //Green
-    Color[1] = 0b11111100;  //Yellow
-    Color[2] = 0b00000011;  //Blue
-    Color[3] = 0b11100000;  //Red
+    Color[0] = RGB332ToVGAPacked(0b00011100);  //Green
+    Color[1] = RGB332ToVGAPacked(0b11111100);  //Yellow
+    Color[2] = RGB332ToVGAPacked(0b00000011);  //Blue
+    Color[3] = RGB332ToVGAPacked(0b11100000);  //Red
   }
   else
   {
-    Color[0] = 0xff; //blanc
-    Color[1] = 0b01011011;  //Turquoise
-    Color[2] = 0b11100011;  //lilas
-    Color[3] = 0b11101000;  //orange(buff)
+    Color[0] = RGB332ToVGAPacked(0xff); //blanc
+    Color[1] = RGB332ToVGAPacked(0b01011011);  //Turquoise
+    Color[2] = RGB332ToVGAPacked(0b11100011);  //lilas
+    Color[3] = RGB332ToVGAPacked(0b11101000);  //orange(buff)
   }  
 
 
 
   for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop++)
   {
-    for (Xloop = 32; Xloop < 288 ; Xloop+=8)
+    for (Xloop = VIDEO_GRAPHICS_X_OFFSET; Xloop < VIDEO_GRAPHICS_X_OFFSET + 256; Xloop+=8)
     {
       Dot1bit[3] = (memory[MemLoop] >> 6) & 0b11;  // Bits 6-7
       Dot1bit[2] = (memory[MemLoop] >> 4) & 0b11;  // Bits 4-5
@@ -1813,19 +1821,19 @@ void RenderCP400GraphMode_256X192X2(void)
 
   if ((sf.CP400GraphicMode & 0b00001000) == 0)
   {
-    Color[0] = 0b00000000;  //black
-    Color[1] = 0b00011100; //green
+    Color[0] = RGB332ToVGAPacked(0b00000000);  //black
+    Color[1] = RGB332ToVGAPacked(0b00011100); //green
   }
   else
   {
-    Color[0] = 0x00;
-    Color[1] = 0xff;
+    Color[0] = RGB332ToVGAPacked(0x00);
+    Color[1] = RGB332ToVGAPacked(0xff);
   }  
 
   for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop++)
 
   {
-    for (Xloop = 32; Xloop <288 ; Xloop+=16)
+    for (Xloop = VIDEO_GRAPHICS_X_OFFSET; Xloop < VIDEO_GRAPHICS_X_OFFSET + 256; Xloop+=16)
     {
       
       Dot1bit[0] = ((memory[MemLoop]>>7) & 0b00000001);
@@ -1890,10 +1898,10 @@ void IRAM_ATTR RenderCP400GraphMode_256X192X2_Artefact(void)
   uint16_t Xcount;
   uint8_t BitCount;
   bool NoBlackFlag = false;
-  Color[0] = 0b00000000;  // Black
-  Color[2] = 0b11100000;  // Red
-  Color[1] = 0b00000011;  // blue
-  Color[3] = 0b11111111;  // White
+  Color[0] = RGB332ToVGAPacked(0b00000000);  // Black
+  Color[2] = RGB332ToVGAPacked(0b11100000);  // Red
+  Color[1] = RGB332ToVGAPacked(0b00000011);  // blue
+  Color[3] = RGB332ToVGAPacked(0b11111111);  // White
   uint8_t LinePrep[266];
   uint16_t LinePrepLoop;
   for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop++)
@@ -1902,7 +1910,7 @@ void IRAM_ATTR RenderCP400GraphMode_256X192X2_Artefact(void)
     DotCount = 0;
     LinePrepLoop = 0;
 
-    for (Xloop = 32; Xloop <288 ; Xloop+=8)
+    for (Xloop = VIDEO_GRAPHICS_X_OFFSET; Xloop < VIDEO_GRAPHICS_X_OFFSET + 256; Xloop+=8)
     {
       Dot1bit[0] = ((memory[MemLoop]>>7) & 0b00000001);
       Dot1bit[1] = ((memory[MemLoop]>>6) & 0b00000001);
@@ -2202,7 +2210,7 @@ void IRAM_ATTR RenderCP400GraphMode_256X192X2_Artefact(void)
       //--------------------------------------
       LinePrepLoop+=8;
     }
-    vga->drawLineFromMemory256(32, Yloop,&LinePrep[0]);
+    vga->drawLineFromMemory256(VIDEO_GRAPHICS_X_OFFSET, Yloop,&LinePrep[0]);
   }
 }
 
@@ -2216,15 +2224,15 @@ void RenderCP400GraphMode_256X192X2_Artefact_Back(void) //(almost)
     uint8_t Color[4];
 
     // Définition des couleurs artefact NTSC
-    Color[0] = 0b00000000;  // noir
-    Color[1] = 0b11100000;  // rouge
-    Color[2] = 0b00000011;  // bleu
-    Color[3] = 0b11111111;  // blanc
+    Color[0] = RGB332ToVGAPacked(0b00000000);  // noir
+    Color[1] = RGB332ToVGAPacked(0b11100000);  // rouge
+    Color[2] = RGB332ToVGAPacked(0b00000011);  // bleu
+    Color[3] = RGB332ToVGAPacked(0b11111111);  // blanc
 
     for (Yloop = VIDEO_Y_OFFSET; Yloop < VIDEO_Y_OFFSET + VIDEO_ACTIVE_HEIGHT; Yloop++)
     {
-        for (Xloop = (sf.VideoEmulatorXpixels - X_OFFSET_32) >> 1; 
-             Xloop < sf.VideoEmulatorXpixels - ((sf.VideoEmulatorXpixels - X_OFFSET_32) >> 1); 
+        for (Xloop = VIDEO_GRAPHICS_X_OFFSET;
+             Xloop < VIDEO_GRAPHICS_X_OFFSET + 256;
              Xloop += 8)
         {
             uint8_t byte = memory[MemLoop++];
@@ -3181,12 +3189,17 @@ void FillKeyboardMatrix(void)
 
   void DisplayVDGchar(uint8_t charNum, uint16_t Xpos, uint16_t Ypos)
   {
-    uint32_t loop1, loop2;
+    uint32_t loop1;
     uint16_t XposLoop, YposLoop;
+    uint8_t convertedLine[8];
     loop1 = charNum * 8 * 12;
     for (YposLoop = Ypos; YposLoop != Ypos+12; YposLoop++)
     {
-      vga->drawLineFromMemory8(Xpos, YposLoop,&cc2_VDG_MAP[loop1]);
+      for (uint8_t pixel = 0; pixel < sizeof(convertedLine); pixel++)
+      {
+        convertedLine[pixel] = RGB332ToVGAPacked(cc2_VDG_MAP[loop1 + pixel]);
+      }
+      vga->drawLineFromMemory8(Xpos, YposLoop, convertedLine);
       loop1+=8;
     }
   }

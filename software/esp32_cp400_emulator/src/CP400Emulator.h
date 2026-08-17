@@ -126,7 +126,7 @@ extern DiskRomSelection selectedDiskRom;
 #define MENU_UP 82
 #define MENU_DOWN 81
 #define MENU_LEFT 80
-#define MENU_RIGHT 70
+#define MENU_RIGHT 79
 #define MENU_ESC 41
 #define MENU_1 30
 #define MENU_2 31
@@ -280,6 +280,16 @@ void DoCPU(void);
 #define VDG_SILVER      0xC618      /* 192, 192, 192 */
 #define VDG_SKYBLUE     0x867D      /* 135, 206, 235 */
 #define VDG_VIOLET      0x915C      /* 180,  46, 226 */
+
+constexpr uint8_t RGB332ToVGAPacked(uint8_t color)
+{
+  return ((color & 0b11100000) >> 5)
+       | ((color & 0b00011100) << 1)
+       | ((color & 0b00000011) << 6);
+}
+
+static_assert(RGB332ToVGAPacked(0b00011100) == 0b00111000,
+              "RGB332 green must map to the VGA green bits");
 
 void CheckFirmwareUpdate(void);
 

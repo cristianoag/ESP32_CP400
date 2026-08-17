@@ -33,10 +33,9 @@ extern bool ValidFirmwareFile(const char* filename);
 
 constexpr uint8_t MENU_X_ORIGIN = 6;
 constexpr uint8_t MENU_Y_ORIGIN = 8;
-constexpr uint16_t MENU_RIGHT_EDGE = 319;
+constexpr uint16_t MENU_RIGHT_EDGE = 270;
 constexpr uint16_t MENU_BOTTOM_EDGE = 239;
-constexpr uint8_t MAIN_MENU_X_OFFSET = 0;
-constexpr uint8_t MAIN_MENU_Y_OFFSET = 0;
+constexpr uint16_t MENU_CONTENT_RIGHT = 264;
 
 #ifdef PSRAM_EMU
 extern uint8_t *rom;
@@ -76,7 +75,8 @@ bool IsSDCardAvailable(void)
 void DrawMenuLine(int x0, int y0, int x1, int y1, int color)
 {
     line(x0 + MENU_X_ORIGIN, y0 + MENU_Y_ORIGIN,
-         x1 + MENU_X_ORIGIN, y1 + MENU_Y_ORIGIN, color);
+         x1 + MENU_X_ORIGIN, y1 + MENU_Y_ORIGIN,
+         RGB332ToVGAPacked(color));
 }
 
 void ShowMenuError(const char *message)
@@ -342,6 +342,8 @@ void DrawText(const char *text, uint8_t Xpos, uint8_t Ypos, uint8_t XpixOffset, 
     uint16_t X, Y;
     X = (uint16_t)Xpos * 6 + XpixOffset + MENU_X_ORIGIN;
     Y = (uint16_t)Ypos * 8 + YpixOffset + MENU_Y_ORIGIN;
+    ForeColor = RGB332ToVGAPacked(ForeColor);
+    BackColor = RGB332ToVGAPacked(BackColor);
 
     if (Y + 7 > MENU_BOTTOM_EDGE)
     {
@@ -420,164 +422,203 @@ void RestoreDisplay(void)
 
 }
 
-
-
-void EMU_Draw_Menu(void)
+enum MainMenuItem : uint8_t
 {
-    //53x28 Chars
-    char* file;
-    bool IsFileValid = false;
-    DrawMainMenuOptions();
+    MAIN_MENU_DISK_DRIVES,
+    MAIN_MENU_FIRMWARE,
+    MAIN_MENU_ARTIFACT_COLORS,
+    MAIN_MENU_DISK_ROM,
+    MAIN_MENU_REBOOT,
+    MAIN_MENU_EXIT,
+    MAIN_MENU_ITEM_COUNT
+};
+
+void DrawSelectableRow(uint8_t row, const char *label, const char *value, bool selected)
+{
+    constexpr size_t rowWidth = 43;
+    char text[rowWidth + 1];
+    memset(text, ' ', rowWidth);
+    text[rowWidth] = '\0';
+
+    snprintf(text, rowWidth + 1, "%-23s %s", label, value);
+    const size_t textLength = strlen(text);
+    if (textLength < rowWidth)
+    {
+        memset(text + textLength, ' ', rowWidth - textLength);
+        text[rowWidth] = '\0';
+    }
+
+    DrawText(text, 0, row, 0, 0,
+             selected ? 0b00000000 : 0b11111111,
+             selected ? 0b00011100 : 0b00000000);
+}
+
+void ChangeMainMenuValue(uint8_t selectedItem)
+{
+    if (selectedItem == MAIN_MENU_ARTIFACT_COLORS)
+    {
+        sf.Artefact = !sf.Artefact;
+        return;
+    }
+
+    if (selectedItem == MAIN_MENU_DISK_ROM)
+    {
+        const DiskRomSelection previousSelection = selectedDiskRom;
+        selectedDiskRom = selectedDiskRom == DiskRomSelection::CP400
+                            ? DiskRomSelection::CoCo2
+                            : DiskRomSelection::CP400;
+        if (!SaveConfigToSD())
+        {
+            selectedDiskRom = previousSelection;
+            ShowMenuError("Unable to save Disk ROM.");
+        }
+    }
+}
+
+void RunFirmwareUpdateFlow(void)
+{
+    char *file = Firmware_Choose();
+    if (strcmp(file, "NF") == 0)
+    {
+        return;
+    }
+
+    vga->clear(0);
     vga->show();
-    while(1)
+    vga->clear(0);
+    DrawText("Install selected firmware?", 0, 10, 0, 0, 255, 0);
+    DrawText("Y: install   N/ESC: cancel", 0, 12, 0, 0, 0b11100000, 0);
+    vga->show();
+
+    while (1)
     {
         switch (sf.DIRECT_Key_Code)
         {
-        case MENU_D:
-            DiskMenuChoose();
-            DrawMainMenuOptions();
+        case MENU_Y:
+            vga->clear(0);
+            DrawText("Checking firmware...", 0, 10, 0, 0, 255, 0);
             vga->show();
-            vTaskDelay(100);
-            break;
-        case MENU_A:    //Artifact colors
-            sf.Artefact = !sf.Artefact;
-            DrawMainMenuOptions();
-            vga->show();
-            vTaskDelay(1000);
-            return;
-            break;
-        case MENU_B:
-        {
-            const DiskRomSelection previousSelection = selectedDiskRom;
-            selectedDiskRom = selectedDiskRom == DiskRomSelection::CP400
-                                ? DiskRomSelection::CoCo2
-                                : DiskRomSelection::CP400;
 
-            if (!SaveConfigToSD())
+            if (!ValidFirmwareFile(file))
             {
-                selectedDiskRom = previousSelection;
-                DrawText("Unable to save Disk ROM selection", 0, 8,
-                         MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
-                vga->show();
-                vTaskDelay(1500);
-                DrawMainMenuOptions();
-                vga->show();
-                break;
+                ShowMenuError("Invalid firmware file.");
+                return;
             }
 
-            DrawMainMenuOptions();
-            DrawText("Rebooting with selected Disk ROM...", 0, 8,
-                     MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
+            vga->clear(0);
+            DrawText("Firmware is valid.", 0, 10, 0, 0, 0b00011100, 0);
+            DrawText("Copying update file...", 0, 12, 0, 0, 255, 0);
             vga->show();
-            vTaskDelay(1000);
+
+            if (!copyFile(file, "/qprcx.rty"))
+            {
+                ShowMenuError("Unable to copy firmware.");
+                return;
+            }
+
+            vga->clear(0);
+            DrawText("Rebooting to install firmware...", 0, 12, 0, 0, 255, 0);
+            vga->show();
+            vTaskDelay(2000);
             esp_restart();
             return;
-        }
-        case MENU_R:
-            
-            for(uint32_t i = 0; i !=65536; i++)
-            {
-                memory[i] = 255;
-            }
-            esp_restart();
-            vTaskDelay(200);
-            return;
-            break;
-        case MENU_F: //Flash Firmware
-            file = Firmware_Choose();
-            if (strcmp(file, "NF") == 0) 
-            {
-                debugln("No File.");
-            } 
-            else 
-            {
-                vga->clear(0);
-                vga->show();
-                vga->clear(0);
-                vga->show();
-                DrawText("Install this firmware?",0,27,0,0,255,0);
-                DrawText(" Y/N",23,27,0,0,0b11100000,0);
-                vga->show();
-                debugln(file);
-                while(1)
-                {
-                    switch (sf.DIRECT_Key_Code)
-                    {
-                    case MENU_Y:
 
-                        vga->clear(0);
-                        vga->show();
-                        vga->clear(0);
-                        vga->show();
-                        DrawText("Checking firmware validity...",0,27,0,0,255,0);    
-                        vga->show();
-                        if (IsFileValid = ValidFirmwareFile(file))
-                        {
-                            debugln("File Valid");
-                            vga->clear(0);
-                            vga->show();
-                            vga->clear(0);
-                            vga->show();
-                            DrawText("The firmware is valid.          ",0,26,0,0,0b00011100,0);    
-                            DrawText("Copying file...          ",0,27,0,0,255,0);    
-                            vga->show();
-                            copyFile(file, "/qprcx.rty"); //random name, Will be removed at boot after flash (Because we can't flash in an RTOS task).
-                            vga->clear(0);
-                            vga->show();
-                            vga->clear(0);
-                            vga->show();
-                            DrawText("Rebooting and installing firmware...          ",0,27,0,0,255,0);    
-                            vga->show();
-                            vTaskDelay(2000);
-                            esp_restart();
-                        }
-                        else
-                        {
-                            vga->clear(0);
-                            vga->show();
-                            vga->clear(0);
-                            vga->show();
-                            DrawText("Invalid firmware!          ",0,27,0,0,0b11100000,0);    
-                            DrawText("Checking firmware validity...",0,28,0,0,255,0);    
-                            vga->show();
-                            debugln("File NOT Valid");
-                            vTaskDelay(1500);
-                            return;
-                        }
-
-                        break;
-                    case MENU_N:
-                        return;
-                        break;
-                    default:
-                        break;
-                    }
-                    vTaskDelay(1);
-                }
-            }
-
-            DrawMainMenuOptions();
-            vga->show();
-            vTaskDelay(100);
-            break;
-        
+        case MENU_N:
         case MENU_ESC:
-            vga->clear(0);
-            vga->show();
-            vga->clear(0);
-            vga->show();
             return;
-            break;
+
         default:
             break;
         }
         vTaskDelay(2);
     }
+}
 
 
 
+void EMU_Draw_Menu(void)
+{
+    uint8_t selectedItem = MAIN_MENU_DISK_DRIVES;
+    DrawMainMenuOptions(selectedItem);
+    vga->show();
 
+    while (1)
+    {
+        switch (sf.DIRECT_Key_Code)
+        {
+        case MENU_UP:
+            if (selectedItem > 0)
+            {
+                selectedItem--;
+                DrawMainMenuOptions(selectedItem);
+                vga->show();
+            }
+            vTaskDelay(120);
+            break;
 
+        case MENU_DOWN:
+            if (selectedItem + 1 < MAIN_MENU_ITEM_COUNT)
+            {
+                selectedItem++;
+                DrawMainMenuOptions(selectedItem);
+                vga->show();
+            }
+            vTaskDelay(120);
+            break;
+
+        case MENU_LEFT:
+        case MENU_RIGHT:
+            if (selectedItem == MAIN_MENU_ARTIFACT_COLORS ||
+                selectedItem == MAIN_MENU_DISK_ROM)
+            {
+                ChangeMainMenuValue(selectedItem);
+                DrawMainMenuOptions(selectedItem);
+                vga->show();
+            }
+            vTaskDelay(150);
+            break;
+
+        case MENU_ENTER:
+            switch (selectedItem)
+            {
+            case MAIN_MENU_DISK_DRIVES:
+                DiskMenuChoose();
+                break;
+
+            case MAIN_MENU_FIRMWARE:
+                RunFirmwareUpdateFlow();
+                break;
+
+            case MAIN_MENU_ARTIFACT_COLORS:
+                ChangeMainMenuValue(selectedItem);
+                break;
+
+            case MAIN_MENU_DISK_ROM:
+                ChangeMainMenuValue(selectedItem);
+                break;
+
+            case MAIN_MENU_REBOOT:
+                memset(memory, 255, 65536);
+                esp_restart();
+                return;
+
+            case MAIN_MENU_EXIT:
+                return;
+            }
+
+            DrawMainMenuOptions(selectedItem);
+            vga->show();
+            vTaskDelay(150);
+            break;
+
+        case MENU_ESC:
+            return;
+
+        default:
+            break;
+        }
+        vTaskDelay(2);
+    }
 }
 
 
@@ -589,133 +630,111 @@ void DiskMenuChoose(void)
         return;
     }
 
-    DrawMenuDiskChoose();
+    uint8_t selectedDrive = 0;
+    DrawMenuDiskChoose(selectedDrive);
+    vga->show();
     
-    while(1)
+    while (1)
     {
-
-
         switch (sf.DIRECT_Key_Code)
         {
-        case MENU_0:
-            DiskMenuChoose_1(0);
-            DrawMenuDiskChoose();
-            vTaskDelay(200);
+        case MENU_UP:
+            if (selectedDrive > 0)
+            {
+                selectedDrive--;
+                DrawMenuDiskChoose(selectedDrive);
+                vga->show();
+            }
+            vTaskDelay(120);
             break;
-        case MENU_1:
-            DiskMenuChoose_1(1);
-            DrawMenuDiskChoose();
-            vTaskDelay(200);
-        break;
-        case MENU_2:
-            DiskMenuChoose_1(2);
-            DrawMenuDiskChoose();
-            vTaskDelay(200);
+
+        case MENU_DOWN:
+            if (selectedDrive < 3)
+            {
+                selectedDrive++;
+                DrawMenuDiskChoose(selectedDrive);
+                vga->show();
+            }
+            vTaskDelay(120);
             break;
-        case MENU_3:
-            DiskMenuChoose_1(3);
-            DrawMenuDiskChoose();
-            vTaskDelay(200);
+
+        case MENU_ENTER:
+            DiskMenuChoose_1(selectedDrive);
+            DrawMenuDiskChoose(selectedDrive);
+            vga->show();
+            vTaskDelay(150);
             break;
+
         case MENU_ESC:
-            vTaskDelay(200);
             return;
-            break;
+
         default:
             break;
         }
         vTaskDelay(2);
     }
-
-    return;
-    
-    
 }
 
-void DrawMainMenuOptions(void)
+void DrawMainMenuOptions(uint8_t selectedItem)
 {
     vga->clear(0);
     vga->show();
     vga->clear(0);
-    vga->show();
-    DrawText("Main Menu:", 0, 0, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
-    DrawMenuLine(0, 10, 312, 10, 0b00011100);
+    DrawText("ESP32 Clone Series", 0, 0, 0, 0, 255, 0);
+    DrawText("Firmware", 32, 0, 0, 0, 255, 0);
+    DrawText(FW_VERSION, 41, 0, 0, 0, 0b00011100, 0);
+    DrawMenuLine(0, 10, MENU_CONTENT_RIGHT, 10, 0b00011100);
 
-    DrawText("D", 0, 2, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
-    DrawText("isk drive menu", 1, 2, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
+    DrawSelectableRow(3, "Disk drives", "Enter >", selectedItem == MAIN_MENU_DISK_DRIVES);
+    DrawSelectableRow(4, "Firmware update", "Enter >", selectedItem == MAIN_MENU_FIRMWARE);
+    DrawSelectableRow(5, "Artifact colors", sf.Artefact ? "< Enabled >" : "< Disabled >",
+                      selectedItem == MAIN_MENU_ARTIFACT_COLORS);
+    DrawSelectableRow(6, "Boot Disk ROM",
+                      selectedDiskRom == DiskRomSelection::CP400 ? "< CP400 >" : "< CoCo 2 >",
+                      selectedItem == MAIN_MENU_DISK_ROM);
+    DrawSelectableRow(7, "Reboot CP400", "Enter", selectedItem == MAIN_MENU_REBOOT);
+    DrawSelectableRow(8, "Exit menu", "Enter", selectedItem == MAIN_MENU_EXIT);
 
-    DrawText("F:", 0, 3, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
-    DrawText("irmware Upgrade menu", 1, 3, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
-
-    DrawText("A", 0, 4, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
-    DrawText("rtifact Colors (NTSC CP400) is ", 1, 4,
-             MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
-    if (sf.Artefact)
-    {
-        DrawText("ENABLED", 33, 4, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b00011100, 0);
-    }
-    else
-    {
-        DrawText("DISABLED", 33, 4, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
-    }
-
-    DrawText("B", 0, 6, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
-    DrawText("oot Disk ROM:", 1, 6, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
-    if (selectedDiskRom == DiskRomSelection::CP400)
-    {
-        DrawText("CP400", 16, 6, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b00011100, 0);
-    }
-    else
-    {
-        DrawText("CoCo 2", 16, 6, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b00011100, 0);
-    }
-    
-    DrawText("R", 0, 25, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
-    DrawText("eboot CP400", 1, 25, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
-    
-    return;
+    DrawMenuLine(0, 199, MENU_CONTENT_RIGHT, 199, 0b00011100);
+    DrawText("UP/DOWN move  LEFT/RIGHT change", 0, 26, 0, 0, 255, 0);
+    DrawText("ENTER select  ESC exit", 0, 27, 0, 0, 255, 0);
 }
 
 
-void DrawMenuDiskChoose(void)
+void DrawMenuDiskChoose(uint8_t selectedDrive)
 {
     vga->clear(0);
     vga->show();
     vga->clear(0);
-    vga->show();
-    DrawText ("Disk drive menu:",0,0,0,0,255,0);
-    DrawMenuLine(0,10,312,10,0b00011100);
-    DrawText ("Disk drive 0:",0,2,0,0,255,0);
-    DrawText ((char*)Disk_Drive.Name_Disk[0] + 1,1,3,0,0,0b11100000,0);
+    DrawText("ESP32 Clone Series", 0, 0, 0, 0, 255, 0);
+    DrawText("Disk drives", 32, 0, 0, 0, 0b00011100, 0);
+    DrawMenuLine(0, 10, MENU_CONTENT_RIGHT, 10, 0b00011100);
 
-    DrawText ("Disk drive 1:",0,5,0,0,255,0);
-    DrawText ((char*)Disk_Drive.Name_Disk[1] + 1,1,6,0,0,0b11100000,0);
+    for (uint8_t drive = 0; drive < 4; drive++)
+    {
+        char label[16];
+        snprintf(label, sizeof(label), "Drive %u", drive);
+        const char *diskName = Disk_Drive.Name_Disk[drive][0] != '\0'
+                                 ? (char*)Disk_Drive.Name_Disk[drive] + 1
+                                 : "<empty>";
+        DrawSelectableRow(3 + drive, label, diskName, drive == selectedDrive);
+    }
 
-    DrawText ("Disk drive 2:",0,8,0,0,255,0);
-    DrawText ((char*)Disk_Drive.Name_Disk[2] + 1,1,9,0,0,0b11100000,0);
-
-    DrawText ("Disk drive 3:",0,11,0,0,255,0);
-    DrawText ((char*)Disk_Drive.Name_Disk[3] + 1,1,12,0,0,0b11100000,0);
-
-    DrawText ("Press 0-3 to assign a disk image.",0,15,0,0,255,0);
-    DrawText ("ESC: return",0,17,0,0,255,0);
-
-
-    vga->show();
-
+    DrawMenuLine(0, 207, MENU_CONTENT_RIGHT, 207, 0b00011100);
+    DrawText("UP/DOWN move  ENTER assign  ESC back", 0, 27, 0, 0, 255, 0);
 }
 
 void DrawDiskMenuChoose_1(void)
 {
     DrawText("Select a disk image", 0, 0, 0, 0, 255, 0);
-    DrawText("Arrows: move  PgUp/PgDn: page  Enter: select", 0, 28, 0, 0, 255, 0);
+    DrawText("Arrows move  Pg keys page  Enter select", 0, 25, 0, 0, 255, 0);
     return;
 }
 
 void DrawFirmwareUpdateMenuChoose(void)
 {
     DrawText("Select firmware to install", 0, 0, 0, 0, 255, 0);
-    DrawText("Arrows: move  Enter: select  ESC: return", 0, 28, 0, 0, 255, 0);
+    DrawText("Arrows move  Enter select  ESC back", 0, 25, 0, 0, 255, 0);
     return;
 }
 
@@ -1044,7 +1063,7 @@ void DisplayDiskContent(void)
 
         
     for (LoopFile = 0;
-         LoopFile < 56 && FileArray.FileList[LoopFile][0] != 255;
+         LoopFile < 30 && FileArray.FileList[LoopFile][0] != 255;
          LoopFile++)
     {
         Loop1 = 0;
@@ -1061,9 +1080,9 @@ void DisplayDiskContent(void)
         DrawText(buf, Xpos, Ypos, 3,3,0b11100000, 0);
 
         Ypos+=1;
-        if (Ypos == YposHome + 14)
+        if (Ypos == YposHome + 10)
         {
-            Xpos+=13;
+            Xpos+=14;
             Ypos = YposHome;
         }
 
@@ -1078,13 +1097,12 @@ void DrawFrames(void)
 {
     #define FRAME_COL_1 0b00011100
     #define FRAME_OFFSET 2
-    DrawMenuLine(0, 101, 312, 101, FRAME_COL_1);
-    DrawMenuLine(0, 101, 0, 223, FRAME_COL_1);
-    DrawMenuLine(312, 101, 312, 223, FRAME_COL_1);
-    DrawMenuLine(0, 223, 312, 223, FRAME_COL_1);
-    DrawMenuLine(78, 101, 78, 223, FRAME_COL_1);
-    DrawMenuLine(156, 101, 156, 223, FRAME_COL_1);
-    DrawMenuLine(234, 101, 234, 223, FRAME_COL_1);
+    DrawMenuLine(0, 108, MENU_CONTENT_RIGHT, 108, FRAME_COL_1);
+    DrawMenuLine(0, 108, 0, 199, FRAME_COL_1);
+    DrawMenuLine(MENU_CONTENT_RIGHT, 108, MENU_CONTENT_RIGHT, 199, FRAME_COL_1);
+    DrawMenuLine(0, 199, MENU_CONTENT_RIGHT, 199, FRAME_COL_1);
+    DrawMenuLine(88, 108, 88, 199, FRAME_COL_1);
+    DrawMenuLine(176, 108, 176, 199, FRAME_COL_1);
 }
 
 uint8_t DrawFiles(uint16_t FileNumber, uint8_t ForeColor, uint8_t BackColor)
