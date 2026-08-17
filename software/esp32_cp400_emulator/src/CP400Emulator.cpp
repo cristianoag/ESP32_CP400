@@ -195,6 +195,7 @@ DiskAccessStruct DiskAccess;
 
 
 DriveStruct Disk_Drive;
+DiskRomSelection selectedDiskRom = DiskRomSelection::CP400;
 
 
 
@@ -346,6 +347,14 @@ bool SaveConfigToSD(void)
         }
     }
 
+    const uint8_t diskRomValue = static_cast<uint8_t>(selectedDiskRom);
+    if (f.write(&diskRomValue, sizeof(diskRomValue)) != sizeof(diskRomValue))
+    {
+        Serial.println("Failed to save Disk ROM selection");
+        f.close();
+        return false;
+    }
+
     f.close();
     Serial.println("Configuration saved to SD");
     return true;
@@ -374,6 +383,23 @@ bool LoadConfigFromSD(void)
             f.close();
             return false;
         }
+    }
+
+    uint8_t diskRomValue = static_cast<uint8_t>(DiskRomSelection::CP400);
+    const size_t selectionBytes = f.read(&diskRomValue, sizeof(diskRomValue));
+    if (selectionBytes == 0)
+    {
+        Serial.println("Legacy configuration found; using CP400 Disk ROM");
+        selectedDiskRom = DiskRomSelection::CP400;
+    }
+    else if (diskRomValue <= static_cast<uint8_t>(DiskRomSelection::CoCo2))
+    {
+        selectedDiskRom = static_cast<DiskRomSelection>(diskRomValue);
+    }
+    else
+    {
+        Serial.println("Invalid Disk ROM selection; using CP400 Disk ROM");
+        selectedDiskRom = DiskRomSelection::CP400;
     }
 
     f.close();
@@ -2262,10 +2288,14 @@ void CopyCP400ROMS1(void)
   memory[LoopRam1++] = bas13[LoopRomSource];
 
 
-  // Copy disk11 to 0xC000 (8K)
+  const uint8_t *diskRom = selectedDiskRom == DiskRomSelection::CP400
+                             ? cp400dsk
+                             : disk11;
+
+  // Copy the selected disk controller ROM to 0xC000 (8K)
   LoopRam1 = 0xC000;
   for (LoopRomSource = 0; LoopRomSource < 8192; LoopRomSource++)
-    memory[LoopRam1++] = disk11[LoopRomSource];
+    memory[LoopRam1++] = diskRom[LoopRomSource];
 
   // copy memory[0x8000 - 0xFFFF] to rom[0 - 0x7FFF]
   LoopRomSource = 0;
@@ -2302,10 +2332,14 @@ void CopyCP400ROMS(void)
   memory[LoopRam1++] = bas13[LoopRomSource];
 
 
-  // Copy disk11 to 0xC000 (8K)
+  const uint8_t *diskRom = selectedDiskRom == DiskRomSelection::CP400
+                             ? cp400dsk
+                             : disk11;
+
+  // Copy the selected disk controller ROM to 0xC000 (8K)
   LoopRam1 = 0xC000;
   for (LoopRomSource = 0; LoopRomSource < 8192; LoopRomSource++)
-    memory[LoopRam1++] = disk11[LoopRomSource];
+    memory[LoopRam1++] = diskRom[LoopRomSource];
 
   // copy memory[0x8000 - 0xFFFF] to rom[0 - 0x7FFF]
   LoopRomSource = 0;
@@ -2337,10 +2371,14 @@ void CopyCoCo3ROMS(void)
     memory[LoopRam1++] = coco3[LoopRom1];
   }
 
-  LoopRam1 = 0xc000;  //disk11
+  const uint8_t *diskRom = selectedDiskRom == DiskRomSelection::CP400
+                             ? cp400dsk
+                             : disk11;
+
+  LoopRam1 = 0xc000;  // Selected disk controller ROM
   for (LoopRom1 = 0; LoopRom1 != 8192; LoopRom1++)
   {
-    memory[LoopRam1++] = disk11[LoopRom1];
+    memory[LoopRam1++] = diskRom[LoopRom1];
   }
 
  

@@ -105,6 +105,14 @@ struct DriveStruct
   uint8_t DriveNumber;
 };
 
+enum class DiskRomSelection : uint8_t
+{
+  CP400 = 0,
+  CoCo2 = 1
+};
+
+extern DiskRomSelection selectedDiskRom;
+
 
 
 
@@ -139,6 +147,7 @@ struct DriveStruct
 #define MENU_Y 28
 #define MENU_N 17
 #define MENU_A 4
+#define MENU_B 5
 
 
 
@@ -276,6 +285,7 @@ void CheckFirmwareUpdate(void);
 
 void InitSD_Card(void);
 void InitSD_Card1(void);
+extern bool SD_Card_Mounted;
 uint8_t GetDriveNumber(uint8_t Address);
 void InitDisks(void);
 uint8_t MountFileSystem(void);

@@ -31,8 +31,12 @@ extern void InitFilesystem(void);
 extern bool copyFile(const char* srcFilename, const char* destFilename);
 extern bool ValidFirmwareFile(const char* filename);
 
-constexpr uint8_t MAIN_MENU_X_OFFSET = 3;
-constexpr uint8_t MAIN_MENU_Y_OFFSET = 8;
+constexpr uint8_t MENU_X_ORIGIN = 6;
+constexpr uint8_t MENU_Y_ORIGIN = 8;
+constexpr uint16_t MENU_RIGHT_EDGE = 319;
+constexpr uint16_t MENU_BOTTOM_EDGE = 239;
+constexpr uint8_t MAIN_MENU_X_OFFSET = 0;
+constexpr uint8_t MAIN_MENU_Y_OFFSET = 0;
 
 #ifdef PSRAM_EMU
 extern uint8_t *rom;
@@ -53,9 +57,48 @@ struct FileArrayStruct
 };
 FileArrayStruct FileArray;
 
+bool IsSDCardAvailable(void)
+{
+    if (!SD_Card_Mounted)
+    {
+        return false;
+    }
+
+    if (SD_MMC.cardType() == CARD_NONE)
+    {
+        SD_Card_Mounted = false;
+        return false;
+    }
+
+    return true;
+}
+
+void DrawMenuLine(int x0, int y0, int x1, int y1, int color)
+{
+    line(x0 + MENU_X_ORIGIN, y0 + MENU_Y_ORIGIN,
+         x1 + MENU_X_ORIGIN, y1 + MENU_Y_ORIGIN, color);
+}
+
+void ShowMenuError(const char *message)
+{
+    vga->clear(0);
+    vga->show();
+    vga->clear(0);
+    DrawText("microSD error", 0, 8, 0, 0, 0b11100000, 0);
+    DrawText(message, 0, 10, 0, 0, 255, 0);
+    DrawText("Returning to the main menu...", 0, 12, 0, 0, 255, 0);
+    vga->show();
+    vTaskDelay(2000);
+}
+
 int8_t FillFileBuffer(uint16_t startIndex, int8_t MaxIndex, const char* fileExt)
 {
-    if (MaxIndex <= 0) return -1; // Pas de fichiers à charger
+    ClearFileBuffer();
+
+    if (!IsSDCardAvailable() || MaxIndex < 0)
+    {
+        return -1;
+    }
 
     File root = SD_MMC.open("/");
     if (!root)
@@ -78,8 +121,6 @@ int8_t FillFileBuffer(uint16_t startIndex, int8_t MaxIndex, const char* fileExt)
     File file = root.openNextFile();
     uint16_t currentIndex = 0;
     int8_t bufferIndex = 0;
-    bool bufferCleared = false; // Nouveau drapeau
-
     while (file && bufferIndex <= MaxIndex)
     {
         const char* name = file.name();
@@ -102,16 +143,6 @@ int8_t FillFileBuffer(uint16_t startIndex, int8_t MaxIndex, const char* fileExt)
 
         if (currentIndex >= startIndex && validEntry)
         {
-            // Clear buffer une seule fois avant de remplir
-            if (!bufferCleared)
-            {
-                for (int i = 0; i <= MaxIndex; i++)
-                {
-                    memset(FileArray.FileBuffer[i], 0, 255);
-                }
-                bufferCleared = true;
-            }
-
             if (file.isDirectory())
             {
                 snprintf((char*)FileArray.FileBuffer[bufferIndex],
@@ -216,14 +247,7 @@ void ClearFileList(void)
 }
 void ClearFileBuffer(void)
 {
-    for (uint8_t loop1 = 0; loop1 != 60; loop1++)
-    {
-        for (uint8_t loop2 = 0; loop2 != 30; loop2++)
-        {
-            FileArray.FileBuffer[loop2][loop1] = 0;
-        }
-    }
-    return;
+    memset(FileArray.FileBuffer, 0, sizeof(FileArray.FileBuffer));
 }
 
 void PrintFileName(uint8_t LoopFile)
@@ -316,11 +340,15 @@ void MENU_DisplayGIMEchar(uint8_t charNum, uint8_t ODDbyte, uint16_t Xpos, uint1
 void DrawText(const char *text, uint8_t Xpos, uint8_t Ypos, uint8_t XpixOffset, uint8_t YpixOffset, uint8_t ForeColor, uint8_t BackColor)
 {
     uint16_t X, Y;
-    X = (uint16_t)Xpos * 6 + XpixOffset;
-    Y = (uint16_t)Ypos * 8 + YpixOffset;
+    X = (uint16_t)Xpos * 6 + XpixOffset + MENU_X_ORIGIN;
+    Y = (uint16_t)Ypos * 8 + YpixOffset + MENU_Y_ORIGIN;
 
-    
-    while(*text != '\0')
+    if (Y + 7 > MENU_BOTTOM_EDGE)
+    {
+        return;
+    }
+
+    while (*text != '\0' && X + 7 <= MENU_RIGHT_EDGE)
     {
         MENU_DisplayGIMEchar(*text, 0, X, Y, ForeColor, BackColor); 
         text++;
@@ -418,6 +446,33 @@ void EMU_Draw_Menu(void)
             vTaskDelay(1000);
             return;
             break;
+        case MENU_B:
+        {
+            const DiskRomSelection previousSelection = selectedDiskRom;
+            selectedDiskRom = selectedDiskRom == DiskRomSelection::CP400
+                                ? DiskRomSelection::CoCo2
+                                : DiskRomSelection::CP400;
+
+            if (!SaveConfigToSD())
+            {
+                selectedDiskRom = previousSelection;
+                DrawText("Unable to save Disk ROM selection", 0, 8,
+                         MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
+                vga->show();
+                vTaskDelay(1500);
+                DrawMainMenuOptions();
+                vga->show();
+                break;
+            }
+
+            DrawMainMenuOptions();
+            DrawText("Rebooting with selected Disk ROM...", 0, 8,
+                     MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
+            vga->show();
+            vTaskDelay(1000);
+            esp_restart();
+            return;
+        }
         case MENU_R:
             
             for(uint32_t i = 0; i !=65536; i++)
@@ -528,6 +583,11 @@ void EMU_Draw_Menu(void)
 
 void DiskMenuChoose(void)
 {
+    if (!IsSDCardAvailable())
+    {
+        ShowMenuError("No microSD card detected.");
+        return;
+    }
 
     DrawMenuDiskChoose();
     
@@ -579,8 +639,7 @@ void DrawMainMenuOptions(void)
     vga->clear(0);
     vga->show();
     DrawText("Main Menu:", 0, 0, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
-    line(MAIN_MENU_X_OFFSET, 10 + MAIN_MENU_Y_OFFSET,
-         319 + MAIN_MENU_X_OFFSET, 10 + MAIN_MENU_Y_OFFSET, 0b00011100);
+    DrawMenuLine(0, 10, 312, 10, 0b00011100);
 
     DrawText("D", 0, 2, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
     DrawText("isk drive menu", 1, 2, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
@@ -599,6 +658,17 @@ void DrawMainMenuOptions(void)
     {
         DrawText("DISABLED", 33, 4, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
     }
+
+    DrawText("B", 0, 6, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
+    DrawText("oot Disk ROM:", 1, 6, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
+    if (selectedDiskRom == DiskRomSelection::CP400)
+    {
+        DrawText("CP400", 16, 6, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b00011100, 0);
+    }
+    else
+    {
+        DrawText("CoCo 2", 16, 6, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b00011100, 0);
+    }
     
     DrawText("R", 0, 25, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 255, 0);
     DrawText("eboot CP400", 1, 25, MAIN_MENU_X_OFFSET, MAIN_MENU_Y_OFFSET, 0b11100000, 0);
@@ -614,7 +684,7 @@ void DrawMenuDiskChoose(void)
     vga->clear(0);
     vga->show();
     DrawText ("Disk drive menu:",0,0,0,0,255,0);
-    line(0,10,319,10,0b00011100);
+    DrawMenuLine(0,10,312,10,0b00011100);
     DrawText ("Disk drive 0:",0,2,0,0,255,0);
     DrawText ((char*)Disk_Drive.Name_Disk[0] + 1,1,3,0,0,0b11100000,0);
 
@@ -627,8 +697,8 @@ void DrawMenuDiskChoose(void)
     DrawText ("Disk drive 3:",0,11,0,0,255,0);
     DrawText ((char*)Disk_Drive.Name_Disk[3] + 1,1,12,0,0,0b11100000,0);
 
-    DrawText ("Select 0, 1, 2, 3 to assign a file to the drive.",0,15,0,0,255,0);
-    DrawText ("ESC to exit menu.",0,16,0,0,255,0);
+    DrawText ("Press 0-3 to assign a disk image.",0,15,0,0,255,0);
+    DrawText ("ESC: return",0,17,0,0,255,0);
 
 
     vga->show();
@@ -637,21 +707,15 @@ void DrawMenuDiskChoose(void)
 
 void DrawDiskMenuChoose_1(void)
 {
-    DrawText ("Select the file to assign to disk drive:",0,0,0,0,255,0);
-    DrawText ("Navigation:",40,5,0,0,255,0);
-    DrawText ("Arrow DOWN",40,7,0,0,255,0);
-    DrawText ("Arrow UP",40,8,0,0,255,0);
-    DrawText ("Page DOWN",40,9,0,0,255,0);
-    DrawText ("Page UP",40,10,0,0,255,0);
+    DrawText("Select a disk image", 0, 0, 0, 0, 255, 0);
+    DrawText("Arrows: move  PgUp/PgDn: page  Enter: select", 0, 28, 0, 0, 255, 0);
     return;
 }
 
 void DrawFirmwareUpdateMenuChoose(void)
 {
-    DrawText ("Select firmware to flash for system upgrade:",0,0,0,0,255,0);
-    DrawText ("Navigation:",40,5,0,0,255,0);
-    DrawText ("Arrow DOWN",40,7,0,0,255,0);
-    DrawText ("Arrow UP",40,8,0,0,255,0);
+    DrawText("Select firmware to install", 0, 0, 0, 0, 255, 0);
+    DrawText("Arrows: move  Enter: select  ESC: return", 0, 28, 0, 0, 255, 0);
     return;
 }
 
@@ -663,6 +727,13 @@ void DiskMenuChoose_1(uint8_t DriveNumber)
     
     int8_t MenuMaxIndex;
     char buf[15];
+
+    if (!IsSDCardAvailable())
+    {
+        ShowMenuError("No microSD card detected.");
+        return;
+    }
+
     vga->clear(0);
     vga->show();
     vga->clear(0);
@@ -670,6 +741,11 @@ void DiskMenuChoose_1(uint8_t DriveNumber)
 
     DrawDiskMenuChoose_1();
     MenuMaxIndex =  FillFileBuffer(MenuPick, 10,".DSK");
+    if (MenuMaxIndex < 0)
+    {
+        ShowMenuError("No .DSK files found.");
+        return;
+    }
     DrawFiles(MenuPick,0b11100000, 0b00000011);
     DisplayDiskContent();
     DrawFrames();
@@ -799,9 +875,24 @@ void DiskMenuChoose_1(uint8_t DriveNumber)
                 vTaskDelay(DELAY_MENU_SELECT);
                 break;
         case MENU_ENTER:
-                snprintf((char*)Disk_Drive.Name_Disk[DriveNumber], sizeof(Disk_Drive.Name_Disk[DriveNumber]),"/%s", (char*)FileArray.FileBuffer[MenuPick]);
-                ReadCP400DiskImage((const char*)Disk_Drive.Name_Disk[DriveNumber], DriveNumber);        //Load into RAMDISK
-                SaveConfigToSD();
+                if (!IsSDCardAvailable())
+                {
+                    ShowMenuError("microSD card was removed.");
+                    return;
+                }
+                snprintf((char*)Disk_Drive.Name_Disk[DriveNumber],
+                         sizeof(Disk_Drive.Name_Disk[DriveNumber]), "/%s",
+                         (char*)FileArray.FileBuffer[MenuPick]);
+                if (!ReadCP400DiskImage((const char*)Disk_Drive.Name_Disk[DriveNumber], DriveNumber))
+                {
+                    ShowMenuError("Unable to read disk image.");
+                    return;
+                }
+                if (!SaveConfigToSD())
+                {
+                    ShowMenuError("Unable to save configuration.");
+                    return;
+                }
                 return;
             break;
             
@@ -828,6 +919,13 @@ char* Firmware_Choose(void)
     
     int8_t MenuMaxIndex;
     char buf[15];
+
+    if (!IsSDCardAvailable())
+    {
+        ShowMenuError("No microSD card detected.");
+        return (char*)"NF";
+    }
+
     vga->clear(0);
     vga->show();
     vga->clear(0);
@@ -835,6 +933,11 @@ char* Firmware_Choose(void)
 
     DrawFirmwareUpdateMenuChoose();
     MenuMaxIndex =  FillFileBuffer(MenuPick, 10,".FLH");
+    if (MenuMaxIndex < 0)
+    {
+        ShowMenuError("No .FLH files found.");
+        return (char*)"NF";
+    }
     DrawFiles(MenuPick,0b11100000, 0b00000011);
     
     //DrawFrames();
@@ -902,7 +1005,11 @@ char* Firmware_Choose(void)
             vTaskDelay(DELAY_MENU_SELECT);
             break;
         case MENU_ENTER:
-            //return (char*)FileArray.FileBuffer[MenuPick];
+            if (!IsSDCardAvailable())
+            {
+                ShowMenuError("microSD card was removed.");
+                return (char*)"NF";
+            }
             FileArray.FileBuffer[15][0] = '/';
             strcpy((char*)&FileArray.FileBuffer[15][1], (const char*)FileArray.FileBuffer[MenuPick]);
             return (char*)FileArray.FileBuffer[15];
@@ -932,11 +1039,13 @@ void DisplayDiskContent(void)
     LoopChar = 0;
     Xpos = 0;
     XposHome = 0;
-    YposHome = 12;
+    YposHome = 14;
     Ypos = YposHome;
 
         
-    for(LoopFile = 0; FileArray.FileList[LoopFile][0] != 255; LoopFile++)
+    for (LoopFile = 0;
+         LoopFile < 56 && FileArray.FileList[LoopFile][0] != 255;
+         LoopFile++)
     {
         Loop1 = 0;
         for(LoopChar = 0; LoopChar !=11; LoopChar++)
@@ -952,7 +1061,7 @@ void DisplayDiskContent(void)
         DrawText(buf, Xpos, Ypos, 3,3,0b11100000, 0);
 
         Ypos+=1;
-        if (Ypos == YposHome + 17)
+        if (Ypos == YposHome + 14)
         {
             Xpos+=13;
             Ypos = YposHome;
@@ -969,25 +1078,22 @@ void DrawFrames(void)
 {
     #define FRAME_COL_1 0b00011100
     #define FRAME_OFFSET 2
-    line(1,97,319,97, FRAME_COL_1);
-    line(1,97,1,235,FRAME_COL_1);
-    line(319,97,319,235,FRAME_COL_1);
-    line(1,235,319,235,FRAME_COL_1);
-
-   line(1,235,319,235, FRAME_COL_1);
- 
-
-    line(78,97,78,235,FRAME_COL_1);
-
-    line(78+78,97,78+78,235,FRAME_COL_1);
-    line(78+78+78,97,78+78+78,235,FRAME_COL_1);
+    DrawMenuLine(0, 101, 312, 101, FRAME_COL_1);
+    DrawMenuLine(0, 101, 0, 223, FRAME_COL_1);
+    DrawMenuLine(312, 101, 312, 223, FRAME_COL_1);
+    DrawMenuLine(0, 223, 312, 223, FRAME_COL_1);
+    DrawMenuLine(78, 101, 78, 223, FRAME_COL_1);
+    DrawMenuLine(156, 101, 156, 223, FRAME_COL_1);
+    DrawMenuLine(234, 101, 234, 223, FRAME_COL_1);
 }
 
 uint8_t DrawFiles(uint16_t FileNumber, uint8_t ForeColor, uint8_t BackColor)
 {
     uint16_t Loop1;
-    uint16_t Ypos = 1;
-    for(Loop1 = 0; FileArray.FileBuffer[Loop1][0] != 0; Loop1++)
+    uint16_t Ypos = 2;
+    for (Loop1 = 0;
+         Loop1 <= 10 && FileArray.FileBuffer[Loop1][0] != 0;
+         Loop1++)
     {
         if (FileNumber == Loop1)
         {
@@ -997,10 +1103,6 @@ uint8_t DrawFiles(uint16_t FileNumber, uint8_t ForeColor, uint8_t BackColor)
         else
         {
             DrawText((char*)FileArray.FileBuffer[Loop1], 0,Ypos++,0,0,ForeColor, BackColor);
-        }
-        if (Loop1 == 12)
-        {
-            break;
         }
     }
     return Loop1;
