@@ -1,0 +1,91 @@
+
+--- Terminal on COM3 | 115200 8-N-1
+--- Available filters and text transformations: debug, default, direct, esp32_exception_decoder, hexlify, log2file, nocontrol, printable, send_on_enter, time
+--- More details at https://bit.ly/pio-monitor-filters
+--- Quit: Ctrl+C | Menu: Ctrl+T | Help: Ctrl+T followed by Ctrl+H
+ESP-ROM:esp32s3-20210327
+Build:Mar 27 2021
+rst:0x1 (POWERON),boot:0x8 (SPI_FAST_FLASH_BOOT)
+SPIWP:0xee
+mode:DIO, clock div:1
+load:0x3fce3808,len:0x4bc
+load:0x403c9700,len:0xbd8
+load:0x403cc700,len:0x2a0c
+entry 0x403c98d0
+[MC6809] version 0.16.20250405 (C)2025 elmerucr
+[   391][E][vfs_api.cpp:29] open():  does not start with /
+[   396][E][vfs_api.cpp:29] open():  does not start with /
+[MC6809] resetting cpu
+USB#0 (pins 18 17) is OK!
+READ_BOTH_PINS = 0100
+READ_BOTH_PINS = 0100
+READ_BOTH_PINS = 0000
+READ_BOTH_PINS = 0000
+cpu freq = 240 MHz
+TIME_MULT = 51 
+D=   0 4800 bits in 1005.000000 uSec 4.776119 MHz  6 ticks in 1.256250 uS
+D= 127 4800 bits in 4313.000000 uSec 1.112914 MHz  6 ticks in 5.391250 uS
+D=  63 4800 bits in 2441.000000 uSec 1.966407 MHz  6 ticks in 3.051250 uS
+D=  95 4800 bits in 3518.000000 uSec 1.364412 MHz  6 ticks in 4.397500 uS
+D=  79 4800 bits in 3189.000000 uSec 1.505174 MHz  6 ticks in 3.986250 uS
+D=  87 4800 bits in 3359.000000 uSec 1.428997 MHz  6 ticks in 4.198750 uS
+D=  83 4800 bits in 3270.000000 uSec 1.467890 MHz  6 ticks in 4.087500 uS
+D=  81 4800 bits in 3238.000000 uSec 1.482396 MHz  6 ticks in 4.047500 uS
+D=  80 4800 bits in 3211.000000 uSec 1.494861 MHz  6 ticks in 4.013750 uS
+D=  79 4800 bits in 3199.000000 uSec 1.500469 MHz  6 ticks in 3.998750 uS
+D=  79 4800 bits in 3189.000000 uSec 1.505174 MHz  6 ticks in 3.986250 uS
+D=  79 4800 bits in 3199.000000 uSec 1.500469 MHz  6 ticks in 3.998750 uS
+D=  79 4800 bits in 3189.000000 uSec 1.505174 MHz  6 ticks in 3.986250 uS
+D=  79 4800 bits in 3198.000000 uSec 1.500938 MHz  6 ticks in 3.997500 uS
+D=  79 4800 bits in 3191.000000 uSec 1.504231 MHz  6 ticks in 3.988750 uS
+D=  79 4800 bits in 3190.000000 uSec 1.504702 MHz  6 ticks in 3.987500 uS
+TRANSMIT_TIME_DELAY = 81 time = 3.998750 error = -0.031251% 
+USB#1 (pins 12 11) is OK!
+READ_BOTH_PINS = 0100
+READ_BOTH_PINS = 0100
+READ_BOTH_PINS = 0000
+READ_BOTH_PINS = 0000
+cpu freq = 240 MHz
+TIME_MULT = 51 
+D=   0 4800 bits in 996.000000 uSec 4.819277 MHz  6 ticks in 1.245000 uS
+D= 127 4800 bits in 4306.000000 uSec 1.114724 MHz  6 ticks in 5.382500 uS
+D=  63 4800 bits in 2439.000000 uSec 1.968020 MHz  6 ticks in 3.048750 uS
+D=  95 4800 bits in 3516.000000 uSec 1.365188 MHz  6 ticks in 4.395000 uS
+D=  79 4800 bits in 3187.000000 uSec 1.506119 MHz  6 ticks in 3.983750 uS
+D=  87 4800 bits in 3358.000000 uSec 1.429422 MHz  6 ticks in 4.197500 uS
+D=  83 4800 bits in 3269.000000 uSec 1.468339 MHz  6 ticks in 4.086250 uS
+D=  81 4800 bits in 3236.000000 uSec 1.483313 MHz  6 ticks in 4.045000 uS
+D=  80 4800 bits in 3209.000000 uSec 1.495793 MHz  6 ticks in 4.011250 uS
+D=  79 4800 bits in 3197.000000 uSec 1.501408 MHz  6 ticks in 3.996250 uS
+D=  79 4800 bits in 3188.000000 uSec 1.505646 MHz  6 ticks in 3.985000 uS
+D=  79 4800 bits in 3197.000000 uSec 1.501408 MHz  6 ticks in 3.996250 uS
+D=  79 4800 bits in 3188.000000 uSec 1.505646 MHz  6 ticks in 3.985000 uS
+D=  79 4800 bits in 3197.000000 uSec 1.501408 MHz  6 ticks in 3.996250 uS
+D=  79 4800 bits in 3186.000000 uSec 1.506591 MHz  6 ticks in 3.982500 uS
+D=  79 4800 bits in 3189.000000 uSec 1.505174 MHz  6 ticks in 3.986250 uS
+TRANSMIT_TIME_DELAY = 81 time = 3.996250 error = -0.093752% 
+USB#2 (pins 16 15) is OK!
+READ_BOTH_PINS = 0000
+READ_BOTH_PINS = 0000
+READ_BOTH_PINS = 0000
+READ_BOTH_PINS = 0000
+cpu freq = 240 MHz
+TIME_MULT = 51 
+D=   0 4800 bits in 998.000000 uSec 4.809619 MHz  6 ticks in 1.247500 uS
+D= 127 4800 bits in 4306.000000 uSec 1.114724 MHz  6 ticks in 5.382500 uS
+D=  63 4800 bits in 2440.000000 uSec 1.967213 MHz  6 ticks in 3.050000 uS
+D=  95 4800 bits in 3518.000000 uSec 1.364412 MHz  6 ticks in 4.397500 uS
+D=  79 4800 bits in 3187.000000 uSec 1.506119 MHz  6 ticks in 3.983750 uS
+D=  87 4800 bits in 3357.000000 uSec 1.429848 MHz  6 ticks in 4.196250 uS
+D=  83 4800 bits in 3269.000000 uSec 1.468339 MHz  6 ticks in 4.086250 uS
+D=  81 4800 bits in 3236.000000 uSec 1.483313 MHz  6 ticks in 4.045000 uS
+D=  80 4800 bits in 3209.000000 uSec 1.495793 MHz  6 ticks in 4.011250 uS
+D=  79 4800 bits in 3197.000000 uSec 1.501408 MHz  6 ticks in 3.996250 uS
+D=  79 4800 bits in 3187.000000 uSec 1.506119 MHz  6 ticks in 3.983750 uS
+D=  79 4800 bits in 3196.000000 uSec 1.501877 MHz  6 ticks in 3.995000 uS
+D=  79 4800 bits in 3188.000000 uSec 1.505646 MHz  6 ticks in 3.985000 uS
+D=  79 4800 bits in 3197.000000 uSec 1.501408 MHz  6 ticks in 3.996250 uS
+D=  79 4800 bits in 3187.000000 uSec 1.506119 MHz  6 ticks in 3.983750 uS
+D=  79 4800 bits in 3196.000000 uSec 1.501877 MHz  6 ticks in 3.995000 uS
+TRANSMIT_TIME_DELAY = 81 time = 3.996250 error = -0.093752% 
+USB#3 is disabled by user configuration

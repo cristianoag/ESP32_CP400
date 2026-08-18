@@ -93,6 +93,7 @@ struct SpecialFunctionStruct
   bool is_JOY2_B2_WasPressed;
   bool is_LastKeyboardScanned;
   bool Artefact;
+  bool JoystickDebug;
 };
 
 struct DriveStruct
@@ -170,10 +171,11 @@ void DoCPU(void);
 #define JOY2_B2 45
 
 
-#define JOY_RX 0
-#define JOY_RY 1
-#define JOY_LX 2
-#define JOY_LY 3
+//PIA mux order is fixed by the CP400/CoCo hardware: 0=Right X, 1=Right Y, 2=Left X, 3=Left Y
+#define JOY1_X_SELECT 0
+#define JOY1_Y_SELECT 1
+#define JOY2_X_SELECT 2
+#define JOY2_Y_SELECT 3
 
 //-----------Videos modes for the emulator
 #define VIDEO_MODE_320X240_16_9 0

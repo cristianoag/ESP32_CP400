@@ -19,6 +19,7 @@
 
 #include "CP400Menu.h"
 #include "CP400Emulator.h"
+#include "CP400Input.h"
 #include "CP400Roms.h"
 
 extern uint8_t *MENU_Backup;
@@ -428,6 +429,7 @@ enum MainMenuItem : uint8_t
     MAIN_MENU_FIRMWARE,
     MAIN_MENU_ARTIFACT_COLORS,
     MAIN_MENU_DISK_ROM,
+    MAIN_MENU_JOYSTICK_CALIBRATION,
     MAIN_MENU_REBOOT,
     MAIN_MENU_EXIT,
     MAIN_MENU_ITEM_COUNT
@@ -534,6 +536,270 @@ void RunFirmwareUpdateFlow(void)
     }
 }
 
+void WaitForMenuKeyRelease(void)
+{
+    while (sf.DIRECT_Key_Code != 0)
+    {
+        vTaskDelay(2);
+    }
+}
+
+void DrawJoystickCalibrationScreen(uint8_t joystick, const char *line1, const char *line2)
+{
+    char title[24];
+    snprintf(title, sizeof(title), "Joystick %u calibration", joystick + 1);
+    vga->clear(0);
+    vga->show();
+    vga->clear(0);
+    DrawText(title, 0, 0, 0, 0, 255, 0);
+    DrawMenuLine(0, 10, MENU_CONTENT_RIGHT, 10, 0b00011100);
+    DrawText(line1, 0, 8, 0, 0, 255, 0);
+    DrawText(line2, 0, 10, 0, 0, 255, 0);
+    DrawText("ENTER continue  ESC cancel", 0, 27, 0, 0, 255, 0);
+    vga->show();
+}
+
+bool CaptureJoystickReport(uint8_t joystick, uint8_t *destination)
+{
+    WaitForMenuKeyRelease();
+    while (sf.DIRECT_Key_Code != MENU_ENTER)
+    {
+        if (sf.DIRECT_Key_Code == MENU_ESC)
+        {
+            return false;
+        }
+        vTaskDelay(2);
+    }
+
+    memcpy(destination, USB_DEV_CONTROL.JOYSTICK_REPORT[joystick], JOYSTICK_REPORT_SIZE);
+    return true;
+}
+
+void SampleJoystickRestState(uint8_t joystick, const uint8_t *neutral, uint8_t *stable,
+                             uint8_t reportLength)
+{
+    memset(stable, 1, JOYSTICK_REPORT_SIZE);
+    for (uint16_t sample = 0; sample < 250; sample++)
+    {
+        for (uint8_t index = 0; index < reportLength; index++)
+        {
+            if (USB_DEV_CONTROL.JOYSTICK_REPORT[joystick][index] != neutral[index])
+            {
+                stable[index] = 0;
+            }
+        }
+        vTaskDelay(2);
+    }
+}
+
+bool JoystickControlsMatch(const JoystickCalibration &calibration, uint8_t first, uint8_t second)
+{
+    for (uint8_t index = 0; index < calibration.reportLength; index++)
+    {
+        const uint8_t bits = calibration.controlBits[first][index];
+        if (bits != calibration.controlBits[second][index] ||
+            (calibration.control[first][index] & bits) !=
+            (calibration.control[second][index] & bits))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+void RunJoystickCalibration(uint8_t joystick)
+{
+    JoystickCalibration previousCalibration = USB_DEV_CONTROL.JOYSTICK_CALIBRATION[joystick];
+    JoystickCalibration calibration = {};
+
+    if (USB_DEV_CONTROL.JOYSTICK_REPORT_LENGTH[joystick] == 0)
+    {
+        DrawJoystickCalibrationScreen(joystick, "Joystick is not connected.",
+                                      "Check USB connection and retry.");
+        vTaskDelay(1500);
+        return;
+    }
+
+    calibration.reportLength = USB_DEV_CONTROL.JOYSTICK_REPORT_LENGTH[joystick];
+
+    DrawJoystickCalibrationScreen(joystick, "Release and center the joystick.",
+                                  "Press ENTER when centered.");
+    if (!CaptureJoystickReport(joystick, calibration.neutral))
+    {
+        return;
+    }
+
+    DrawJoystickCalibrationScreen(joystick, "Checking joystick at rest...",
+                                  "Do not touch the joystick.");
+    SampleJoystickRestState(joystick, calibration.neutral, calibration.stable,
+                            calibration.reportLength);
+
+    const char *controlNames[JOYSTICK_CONTROL_COUNT] =
+    {
+        "UP", "DOWN", "LEFT", "RIGHT", "BUTTON 1", "BUTTON 2"
+    };
+    char instruction[40];
+    for (uint8_t control = 0; control < JOYSTICK_CONTROL_COUNT; control++)
+    {
+        snprintf(instruction, sizeof(instruction), "Hold %s on joystick %u.",
+                 controlNames[control], joystick + 1);
+        DrawJoystickCalibrationScreen(joystick, instruction,
+                                      "Press ENTER while holding it.");
+        if (!CaptureJoystickReport(joystick, calibration.control[control]))
+        {
+            return;
+        }
+
+        bool controlDetected = false;
+        for (uint8_t index = 0; index < calibration.reportLength; index++)
+        {
+            const uint8_t changed =
+                calibration.stable[index]
+                  ? (calibration.neutral[index] ^ calibration.control[control][index])
+                  : 0;
+            calibration.controlBits[control][index] = changed;
+            controlDetected = controlDetected || changed != 0;
+        }
+
+        if (USB_DEV_CONTROL.JOYSTICK_REPORT_LENGTH[joystick] != calibration.reportLength ||
+            !controlDetected)
+        {
+            DrawJoystickCalibrationScreen(joystick, "Control was not detected.",
+                                          "Hold it firmly and retry.");
+            WaitForMenuKeyRelease();
+            vTaskDelay(1200);
+            return;
+        }
+
+        for (uint8_t previousControl = 0; previousControl < control; previousControl++)
+        {
+            if (JoystickControlsMatch(calibration, previousControl, control))
+            {
+                DrawJoystickCalibrationScreen(joystick, "Duplicate control detected.",
+                                              "Use a different control and retry.");
+                WaitForMenuKeyRelease();
+                vTaskDelay(1200);
+                return;
+            }
+        }
+    }
+
+    for (uint8_t index = 0; index < calibration.reportLength; index++)
+    {
+        uint8_t directionBits = 0;
+        for (uint8_t direction = 0; direction <= JOYSTICK_RIGHT; direction++)
+        {
+            directionBits |= calibration.controlBits[direction][index];
+        }
+        calibration.directionBits[index] = directionBits;
+    }
+
+    calibration.valid = 1;
+    USB_DEV_CONTROL.JOYSTICK_CALIBRATION[joystick] = calibration;
+    if (!SaveConfigToSD())
+    {
+        USB_DEV_CONTROL.JOYSTICK_CALIBRATION[joystick] = previousCalibration;
+        ShowMenuError("Unable to save calibration.");
+        return;
+    }
+
+    PrintJoystickCalibration(joystick);
+    DrawJoystickCalibrationScreen(joystick, "Calibration saved.", "");
+    WaitForMenuKeyRelease();
+    vTaskDelay(800);
+}
+
+void DrawJoystickCalibrationMenu(uint8_t selectedJoystick)
+{
+    vga->clear(0);
+    vga->show();
+    vga->clear(0);
+    DrawText("Joystick calibration", 0, 0, 0, 0, 255, 0);
+    DrawMenuLine(0, 10, MENU_CONTENT_RIGHT, 10, 0b00011100);
+    DrawSelectableRow(3, "Joystick 1",
+                      USB_DEV_CONTROL.JOYSTICK_CALIBRATION[0].valid ? "Calibrated >" : "Calibrate >",
+                      selectedJoystick == 0);
+    DrawSelectableRow(4, "Joystick 2",
+                      USB_DEV_CONTROL.JOYSTICK_CALIBRATION[1].valid ? "Calibrated >" : "Calibrate >",
+                      selectedJoystick == 1);
+    DrawSelectableRow(5, "Serial debug", sf.JoystickDebug ? "< Enabled >" : "< Disabled >",
+                      selectedJoystick == 2);
+    DrawSelectableRow(6, "Back", "Enter", selectedJoystick == 3);
+    DrawMenuLine(0, 207, MENU_CONTENT_RIGHT, 207, 0b00011100);
+    DrawText("UP/DOWN move  ENTER select  ESC back", 0, 27, 0, 0, 255, 0);
+}
+
+void JoystickCalibrationMenu(void)
+{
+    uint8_t selectedJoystick = 0;
+    DrawJoystickCalibrationMenu(selectedJoystick);
+    vga->show();
+    WaitForMenuKeyRelease();
+
+    while (1)
+    {
+        switch (sf.DIRECT_Key_Code)
+        {
+        case MENU_UP:
+            if (selectedJoystick > 0)
+            {
+                selectedJoystick--;
+                DrawJoystickCalibrationMenu(selectedJoystick);
+                vga->show();
+            }
+            vTaskDelay(120);
+            break;
+        case MENU_DOWN:
+            if (selectedJoystick < 3)
+            {
+                selectedJoystick++;
+                DrawJoystickCalibrationMenu(selectedJoystick);
+                vga->show();
+            }
+            vTaskDelay(120);
+            break;
+        case MENU_LEFT:
+        case MENU_RIGHT:
+            if (selectedJoystick == 2)
+            {
+                sf.JoystickDebug = !sf.JoystickDebug;
+                DrawJoystickCalibrationMenu(selectedJoystick);
+                vga->show();
+            }
+            vTaskDelay(150);
+            break;
+        case MENU_ENTER:
+            if (selectedJoystick == 3)
+            {
+                return;
+            }
+            if (selectedJoystick == 2)
+            {
+                sf.JoystickDebug = !sf.JoystickDebug;
+                if (sf.JoystickDebug)
+                {
+                    PrintJoystickCalibration(0);
+                    PrintJoystickCalibration(1);
+                }
+                DrawJoystickCalibrationMenu(selectedJoystick);
+                vga->show();
+                vTaskDelay(150);
+                break;
+            }
+            RunJoystickCalibration(selectedJoystick);
+            DrawJoystickCalibrationMenu(selectedJoystick);
+            vga->show();
+            WaitForMenuKeyRelease();
+            break;
+        case MENU_ESC:
+            return;
+        default:
+            break;
+        }
+        vTaskDelay(2);
+    }
+}
+
 
 
 void EMU_Draw_Menu(void)
@@ -595,6 +861,10 @@ void EMU_Draw_Menu(void)
 
             case MAIN_MENU_DISK_ROM:
                 ChangeMainMenuValue(selectedItem);
+                break;
+
+            case MAIN_MENU_JOYSTICK_CALIBRATION:
+                JoystickCalibrationMenu();
                 break;
 
             case MAIN_MENU_REBOOT:
@@ -681,8 +951,8 @@ void DrawMainMenuOptions(uint8_t selectedItem)
     vga->show();
     vga->clear(0);
     DrawText("ESP32 Clone Series", 0, 0, 0, 0, 255, 0);
-    DrawText("Firmware", 32, 0, 0, 0, 255, 0);
-    DrawText(FW_VERSION, 41, 0, 0, 0, 0b00011100, 0);
+    DrawText("Firmware", 30, 0, 0, 0, 255, 0);
+    DrawText(FW_VERSION, 39, 0, 0, 0, 0b00011100, 0);
     DrawMenuLine(0, 10, MENU_CONTENT_RIGHT, 10, 0b00011100);
 
     DrawSelectableRow(3, "Disk drives", "Enter >", selectedItem == MAIN_MENU_DISK_DRIVES);
@@ -692,8 +962,10 @@ void DrawMainMenuOptions(uint8_t selectedItem)
     DrawSelectableRow(6, "Boot Disk ROM",
                       selectedDiskRom == DiskRomSelection::CP400 ? "< CP400 >" : "< CoCo 2 >",
                       selectedItem == MAIN_MENU_DISK_ROM);
-    DrawSelectableRow(7, "Reboot CP400", "Enter", selectedItem == MAIN_MENU_REBOOT);
-    DrawSelectableRow(8, "Exit menu", "Enter", selectedItem == MAIN_MENU_EXIT);
+    DrawSelectableRow(7, "Joystick calibration", "Enter >",
+                      selectedItem == MAIN_MENU_JOYSTICK_CALIBRATION);
+    DrawSelectableRow(8, "Reboot CP400", "Enter", selectedItem == MAIN_MENU_REBOOT);
+    DrawSelectableRow(9, "Exit menu", "Enter", selectedItem == MAIN_MENU_EXIT);
 
     DrawMenuLine(0, 199, MENU_CONTENT_RIGHT, 199, 0b00011100);
     DrawText("UP/DOWN move  LEFT/RIGHT change", 0, 26, 0, 0, 255, 0);

@@ -22,6 +22,29 @@
 
 #include <Arduino.h>
 
+#define JOYSTICK_REPORT_SIZE 32
+#define JOYSTICK_CONTROL_COUNT 6
+
+enum JoystickControl : uint8_t
+{
+    JOYSTICK_UP,
+    JOYSTICK_DOWN,
+    JOYSTICK_LEFT,
+    JOYSTICK_RIGHT,
+    JOYSTICK_BUTTON_1,
+    JOYSTICK_BUTTON_2
+};
+
+struct JoystickCalibration
+{
+    uint8_t reportLength;
+    uint8_t neutral[JOYSTICK_REPORT_SIZE];
+    uint8_t stable[JOYSTICK_REPORT_SIZE];   //0 for bytes that change on their own at rest
+    uint8_t control[JOYSTICK_CONTROL_COUNT][JOYSTICK_REPORT_SIZE];
+    uint8_t controlBits[JOYSTICK_CONTROL_COUNT][JOYSTICK_REPORT_SIZE];
+    uint8_t directionBits[JOYSTICK_REPORT_SIZE];
+    uint8_t valid;
+};
 
 struct USB_DEVICES_CTRL
 {
@@ -42,11 +65,15 @@ struct USB_DEVICES_CTRL
     uint8_t JOY2_BUTT2;
     uint8_t JOY2_X_AXIS;
     uint8_t JOY2_Y_AXIS;
+    uint8_t JOYSTICK_REPORT[2][JOYSTICK_REPORT_SIZE];
+    uint8_t JOYSTICK_REPORT_LENGTH[2];
+    JoystickCalibration JOYSTICK_CALIBRATION[2];
     bool    Message_From_Stm32;
     
 
 };
 
+extern USB_DEVICES_CTRL USB_DEV_CONTROL;
 
 void Setup_USB(void);
 void fillKeysStruct(void);
@@ -54,7 +81,9 @@ void UpdateKeyMap(uint8_t * Data);
 extern void FPGA_Write_Byte(uint16_t Address, uint8_t Data);
 extern uint8_t SendRequest(uint8_t DataToSend);
 
-void UpdateJoyMap(uint8_t * Data, uint8_t usbNum);
+void UpdateJoyMap(uint8_t * Data, uint8_t dataLength, uint8_t usbNum);
+bool IsJoystickControlActive(uint8_t joystick, JoystickControl control);
+void PrintJoystickCalibration(uint8_t joystick);
 
 
 #endif

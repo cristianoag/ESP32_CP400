@@ -127,7 +127,13 @@ bool copyFile(const char* srcFilename, const char* destFilename)
         return false;
     }
 
-    // Open or create destination file for writing
+    if (SD_MMC.exists(destFilename) && !SD_MMC.remove(destFilename))
+    {
+        debugln("Failed to remove previous firmware staging file!");
+        srcFile.close();
+        return false;
+    }
+
     File destFile = SD_MMC.open(destFilename, FILE_WRITE);
     if (!destFile)
     {
@@ -138,14 +144,15 @@ bool copyFile(const char* srcFilename, const char* destFilename)
 
     uint8_t buf[512]; // Temporary buffer
     size_t bytesRead;
-    bool foundSlash = false;
+    size_t bytesWritten = 0;
+    bool foundSeparator = false;
 
     // Copy the file chunk by chunk
     while ((bytesRead = srcFile.read(buf, sizeof(buf))) > 0)
     {
         size_t startIndex = 0;
 
-        if (!foundSlash)
+        if (!foundSeparator)
         {
             // Look for first '~'
             for (size_t i = 0; i < bytesRead; i++)
@@ -153,30 +160,51 @@ bool copyFile(const char* srcFilename, const char* destFilename)
                 if (buf[i] == '~')
                 {
                     startIndex = i + 1; // Start after '~'
-                    foundSlash = true;
+                    foundSeparator = true;
                     break;
                 }
             }
 
-            // If '/' not found in this chunk, skip it entirely
-            if (!foundSlash)
+            if (!foundSeparator)
                 continue;
         }
 
-        // Write the remaining bytes starting from startIndex
-        if (destFile.write(buf + startIndex, bytesRead - startIndex) != (bytesRead - startIndex))
+        const size_t bytesToWrite = bytesRead - startIndex;
+        if (bytesToWrite > 0 && destFile.write(buf + startIndex, bytesToWrite) != bytesToWrite)
         {
             debugln("Write error!");
             srcFile.close();
             destFile.close();
+            SD_MMC.remove(destFilename);
             return false;
         }
+        bytesWritten += bytesToWrite;
     }
 
     srcFile.close();
     destFile.close();
 
-    debugln("File copied successfully after first '~'!");
+    if (!foundSeparator || bytesWritten == 0)
+    {
+        debugln("Firmware separator or payload not found!");
+        SD_MMC.remove(destFilename);
+        return false;
+    }
+
+    File stagedFile = SD_MMC.open(destFilename, FILE_READ);
+    const bool validSize = stagedFile && stagedFile.size() == bytesWritten;
+    if (stagedFile)
+    {
+        stagedFile.close();
+    }
+    if (!validSize)
+    {
+        debugln("Firmware staging file size mismatch!");
+        SD_MMC.remove(destFilename);
+        return false;
+    }
+
+    debugln("Firmware staged successfully!");
     return true;
 }
 

@@ -92,6 +92,32 @@ framework = arduino
 
 The project intentionally pins the Espressif platform version because newer Arduino/ESP32 combinations may change includes and behavior used by the emulator.
 
+### F12 Firmware Update Package
+
+From `software/esp32_cp400_emulator`, generate a firmware package for the F12 update menu with:
+
+```console
+make firmware
+```
+
+The command builds the configured PlatformIO environment and creates a versioned package such as `dist/ESP32_CP400-1.10.FLH`. Copy that `.FLH` file to the root of the CP400 microSD card, then select **Firmware update** from the F12 menu.
+
+Set the firmware version with `FW_VERSION` near the top of the Makefile, using one major digit and two minor digits. It is compiled into the F12 menu and used in the package filename. A one-off version can be built without editing the file:
+
+```console
+make firmware FW_VERSION=1.11
+```
+
+The command names can be overridden when needed, for example:
+
+```console
+make firmware PIO=platformio PYTHON=py
+```
+
+On Windows, the Makefile automatically detects PlatformIO in `%USERPROFILE%/.platformio/penv/Scripts`. Use `make help` to display the detected command.
+
+Firmware release changes are tracked in `software/esp32_cp400_emulator/docs/log.md`.
+
 ## Status
 
 This project is under active development. Expect the hardware, pin mapping, emulator behavior, and documentation to evolve together.

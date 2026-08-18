@@ -330,6 +330,12 @@ bool SaveConfigToSD(void)
       return false;
     }
 
+    if (SD_MMC.exists("/config.ccc") && !SD_MMC.remove("/config.ccc"))
+    {
+      Serial.println("Failed to replace /config.ccc");
+      return false;
+    }
+
     File f = SD_MMC.open("/config.ccc", FILE_WRITE);
     if (!f) {
         Serial.println("Failed to open /config.ccc for writing");
@@ -355,6 +361,16 @@ bool SaveConfigToSD(void)
         return false;
     }
 
+    const uint8_t calibrationHeader[] = {'J', 'C', 'A', 'L', 4};
+    if (f.write(calibrationHeader, sizeof(calibrationHeader)) != sizeof(calibrationHeader) ||
+      f.write(reinterpret_cast<const uint8_t*>(USB_DEV_CONTROL.JOYSTICK_CALIBRATION),
+          sizeof(USB_DEV_CONTROL.JOYSTICK_CALIBRATION)) != sizeof(USB_DEV_CONTROL.JOYSTICK_CALIBRATION))
+    {
+      Serial.println("Failed to save joystick calibration");
+      f.close();
+      return false;
+    }
+
     f.close();
     Serial.println("Configuration saved to SD");
     return true;
@@ -362,6 +378,9 @@ bool SaveConfigToSD(void)
 
 bool LoadConfigFromSD(void)
 {
+  memset(USB_DEV_CONTROL.JOYSTICK_CALIBRATION, 0,
+       sizeof(USB_DEV_CONTROL.JOYSTICK_CALIBRATION));
+
     if (!SD_Card_Mounted)
     {
       return false;
@@ -400,6 +419,22 @@ bool LoadConfigFromSD(void)
     {
         Serial.println("Invalid Disk ROM selection; using CP400 Disk ROM");
         selectedDiskRom = DiskRomSelection::CP400;
+    }
+
+    uint8_t calibrationHeader[5];
+    JoystickCalibration calibration[2];
+    if (f.read(calibrationHeader, sizeof(calibrationHeader)) == sizeof(calibrationHeader) &&
+      memcmp(calibrationHeader, "JCAL\x04", sizeof(calibrationHeader)) == 0 &&
+      f.read(reinterpret_cast<uint8_t*>(calibration), sizeof(calibration)) == sizeof(calibration))
+    {
+      for (uint8_t joystick = 0; joystick < 2; joystick++)
+      {
+        if (calibration[joystick].valid && calibration[joystick].reportLength > 0 &&
+            calibration[joystick].reportLength <= JOYSTICK_REPORT_SIZE)
+        {
+          USB_DEV_CONTROL.JOYSTICK_CALIBRATION[joystick] = calibration[joystick];
+        }
+      }
     }
 
     f.close();
@@ -560,8 +595,8 @@ uint8_t SCAN_Keyboard_Matrix[8][7];
 uint8_t ReadCP400Buttons(void)
 {
   uint8_t val1, val2;
-  val1 = USB_DEV_CONTROL.JOY1_BUTT1;
-  val2 = USB_DEV_CONTROL.JOY2_BUTT1<<1;
+  val1 = USB_DEV_CONTROL.JOY1_BUTT1 & USB_DEV_CONTROL.JOY1_BUTT2;
+  val2 = (USB_DEV_CONTROL.JOY2_BUTT1 & USB_DEV_CONTROL.JOY2_BUTT2) << 1;
 
   return val1 | val2;
   
@@ -692,6 +727,7 @@ void InitPeripherals_and_Others(void)
   sf.is_JOY2_B1_WasPressed = false;
   sf.is_JOY2_B2_WasPressed = false;
   sf.is_LastKeyboardScanned = false;
+  sf.JoystickDebug = true;
 //------------Init of Disk Registers------
 
   DiskAccess.IsinReadProcess = false;
@@ -921,31 +957,167 @@ void setTimerInterval(uint32_t newInterval) //To set Slow/Fast CPU speed
   timerAlarmEnable(cpuTimer);
 }
 
-uint8_t ReadJoysticks(uint8_t JoyNum)
+static bool JoystickByteMatches(uint8_t currentValue, uint8_t neutralValue,
+                                uint8_t controlValue, uint8_t compareBits)
 {
-  
+  const int delta = static_cast<int>(controlValue) - static_cast<int>(neutralValue);
 
-    switch (JoyNum)
+  //A large move is an analog axis, so accept anything past the halfway point.
+  if (delta >= 32 || delta <= -32)
   {
-  case JOY_RX:
-    return USB_DEV_CONTROL.JOY1_X_AXIS;
-    break;
-  case JOY_RY:
-    return USB_DEV_CONTROL.JOY1_Y_AXIS;
-    break;
-  case JOY_LX:
-    return USB_DEV_CONTROL.JOY2_X_AXIS;
-    break;
-  case JOY_LY:
-    return USB_DEV_CONTROL.JOY2_Y_AXIS;
-    break;
-  
-  default:
-    break;
+    const int threshold = static_cast<int>(neutralValue) + delta / 2;
+    return delta > 0 ? static_cast<int>(currentValue) >= threshold
+                     : static_cast<int>(currentValue) <= threshold;
   }
-  return 255; 
+
+  //An empty mask would match every value, so compare the whole byte instead.
+  if (compareBits == 0)
+  {
+    return currentValue == controlValue;
+  }
+
+  return ((currentValue ^ controlValue) & compareBits) == 0;
 }
 
+bool IsJoystickControlActive(uint8_t joystick, JoystickControl control)
+{
+  const JoystickCalibration &calibration = USB_DEV_CONTROL.JOYSTICK_CALIBRATION[joystick];
+  if (!calibration.valid ||
+      USB_DEV_CONTROL.JOYSTICK_REPORT_LENGTH[joystick] != calibration.reportLength)
+  {
+    return false;
+  }
+
+  const uint8_t *current = USB_DEV_CONTROL.JOYSTICK_REPORT[joystick];
+  const bool isDirection = control <= JOYSTICK_RIGHT;
+  bool checkedAnyByte = false;
+
+  for (uint8_t index = 0; index < calibration.reportLength; index++)
+  {
+    const uint8_t changedBits = calibration.controlBits[control][index];
+    if (!calibration.stable[index] || changedBits == 0)
+    {
+      continue;
+    }
+
+    //Directions share one mask so a hat value cannot also match its neighbours.
+    const uint8_t compareBits = isDirection ? calibration.directionBits[index] : changedBits;
+    if (!JoystickByteMatches(current[index], calibration.neutral[index],
+                             calibration.control[control][index], compareBits))
+    {
+      return false;
+    }
+    checkedAnyByte = true;
+  }
+
+  return checkedAnyByte;
+}
+
+void PrintJoystickCalibration(uint8_t joystick)
+{
+  const JoystickCalibration &calibration = USB_DEV_CONTROL.JOYSTICK_CALIBRATION[joystick];
+  if (!calibration.valid)
+  {
+    printf("JOY%u calibration: none\n", joystick + 1);
+    return;
+  }
+
+  static const char *controlNames[JOYSTICK_CONTROL_COUNT] =
+  {
+    "UP", "DOWN", "LEFT", "RIGHT", "BTN1", "BTN2"
+  };
+
+  printf("JOY%u calibration len=%u\n", joystick + 1, calibration.reportLength);
+  printf("  neutral :");
+  for (uint8_t index = 0; index < calibration.reportLength; index++)
+  {
+    printf(" %02X", calibration.neutral[index]);
+  }
+  printf("\n  stable  :");
+  for (uint8_t index = 0; index < calibration.reportLength; index++)
+  {
+    printf(" %02X", calibration.stable[index]);
+  }
+  printf("\n");
+
+  for (uint8_t control = 0; control < JOYSTICK_CONTROL_COUNT; control++)
+  {
+    printf("  %-5s v:", controlNames[control]);
+    for (uint8_t index = 0; index < calibration.reportLength; index++)
+    {
+      printf(" %02X", calibration.control[control][index]);
+    }
+    printf("  b:");
+    for (uint8_t index = 0; index < calibration.reportLength; index++)
+    {
+      printf(" %02X", calibration.controlBits[control][index]);
+    }
+    printf("\n");
+  }
+
+  printf("  dirbits :");
+  for (uint8_t index = 0; index < calibration.reportLength; index++)
+  {
+    printf(" %02X", calibration.directionBits[index]);
+  }
+  printf("\n");
+}
+
+uint8_t ReadJoysticks(uint8_t JoyNum)
+{
+  switch (JoyNum)
+  {
+  case JOY2_X_SELECT:
+    return USB_DEV_CONTROL.JOY2_X_AXIS;
+  case JOY1_X_SELECT:
+    return USB_DEV_CONTROL.JOY1_X_AXIS;
+  case JOY2_Y_SELECT:
+    return USB_DEV_CONTROL.JOY2_Y_AXIS;
+  case JOY1_Y_SELECT:
+    return USB_DEV_CONTROL.JOY1_Y_AXIS;
+  default:
+    return 255;
+  }
+}
+
+
+void PrintJoystickState(uint8_t joystick);
+
+//Runs on the free core so the video task cannot starve it and Serial cannot stall USB.
+void JoystickDebugCore(void *pvParameters)
+{
+  static uint8_t lastReport[2][JOYSTICK_REPORT_SIZE];
+  static uint8_t lastLength[2] = {255, 255};
+
+  while (true)
+  {
+    if (sf.JoystickDebug)
+    {
+      for (uint8_t joystick = 0; joystick < 2; joystick++)
+      {
+        const uint8_t reportLength = USB_DEV_CONTROL.JOYSTICK_REPORT_LENGTH[joystick];
+        if (reportLength == 0)
+        {
+          continue;
+        }
+
+        if (reportLength == lastLength[joystick] &&
+            memcmp(lastReport[joystick], USB_DEV_CONTROL.JOYSTICK_REPORT[joystick],
+                   reportLength) == 0)
+        {
+          continue;
+        }
+
+        memcpy(lastReport[joystick], USB_DEV_CONTROL.JOYSTICK_REPORT[joystick],
+               JOYSTICK_REPORT_SIZE);
+        lastLength[joystick] = reportLength;
+        PrintJoystickState(joystick);
+      }
+    }
+
+    vTaskDelay(10);
+  }
+}
 
 //initial setup
 
@@ -978,6 +1150,9 @@ void setup()
 
   Setup_USB();
 
+  PrintJoystickCalibration(0);
+  PrintJoystickCalibration(1);
+
 
   xTaskCreatePinnedToCore
   (
@@ -989,6 +1164,8 @@ void setup()
     NULL,              // Handle 
     1                  // CPU 0 or 1
   );
+
+  xTaskCreatePinnedToCore(JoystickDebugCore, "JoyDebug", 4096, NULL, 1, NULL, 0);
 
 }
 
@@ -2736,6 +2913,10 @@ void InitDisks(void)
           ledcWrite(0,value);
         }
       break;
+    case M_FF01:
+        //CA2 (bit 3) selects the joystick mux channel; bit 7 is the read-only interrupt flag.
+        rom[ROM_FF01] = (rom[ROM_FF01] & 0b10000000) | (value & 0b01111111);
+      break;
     case M_FF02:
         ManageKeyboardScan(value);
         rom[ROM_FF02] = value;
@@ -2749,6 +2930,8 @@ void InitDisks(void)
         {
           sf.V_Synch_Int_Enabled = true;
         }  
+        //CB2 (bit 3) selects the joystick mux channel; bit 7 is the read-only interrupt flag.
+        rom[ROM_FF03] = (rom[ROM_FF03] & 0b10000000) | (value & 0b01111111);
       break;
 
       case M_FFD9:
@@ -3244,6 +3427,8 @@ void line(int x0, int y0, int x1, int y1, int rgb)
 static void my_USB_DetectCB( uint8_t usbNum, void * dev )
 {
   sDevDesc *device = (sDevDesc*)dev;
+  printf("USB device detected on port %u: VID=0x%04x PID=0x%04x\n",
+         usbNum, device->idVendor, device->idProduct);
 #ifdef DEBUG_PRINT  
   printf("New device detected on USB#%d\n", usbNum);
   printf("desc.bcdUSB             = 0x%04x\n", device->bcdUSB);
@@ -3274,11 +3459,11 @@ static void my_USB_PrintCB(uint8_t usbNum, uint8_t byte_depth, uint8_t* data, ui
   }
   else if (usbNum == USB_DEV_CONTROL.PORT_JOY1)
   {
-    UpdateJoyMap(data, usbNum);
+    UpdateJoyMap(data, data_len, usbNum);
   }
   else if (usbNum == USB_DEV_CONTROL.PORT_JOY2)
   {
-    UpdateJoyMap(data, usbNum);
+    UpdateJoyMap(data, data_len, usbNum);
   }
   
   #ifdef DEBUG_ALL
@@ -3354,12 +3539,14 @@ void fillKeysStruct(void)
 {
     USB_DEV_CONTROL.JOY1_BUTT1 = 1;
     USB_DEV_CONTROL.JOY1_BUTT2 = 1;
-    USB_DEV_CONTROL.JOY1_X_AXIS = 31;
-    USB_DEV_CONTROL.JOY1_Y_AXIS = 31;
+    USB_DEV_CONTROL.JOY1_X_AXIS = 128;
+    USB_DEV_CONTROL.JOY1_Y_AXIS = 128;
     USB_DEV_CONTROL.JOY2_BUTT1 = 1;
     USB_DEV_CONTROL.JOY2_BUTT2 = 1;
-    USB_DEV_CONTROL.JOY2_X_AXIS = 31;
-    USB_DEV_CONTROL.JOY2_Y_AXIS = 31;
+    USB_DEV_CONTROL.JOY2_X_AXIS = 128;
+    USB_DEV_CONTROL.JOY2_Y_AXIS = 128;
+    memset(USB_DEV_CONTROL.JOYSTICK_REPORT, 0, sizeof(USB_DEV_CONTROL.JOYSTICK_REPORT));
+    memset(USB_DEV_CONTROL.JOYSTICK_REPORT_LENGTH, 0, sizeof(USB_DEV_CONTROL.JOYSTICK_REPORT_LENGTH));
 
     
     USB_DEV_CONTROL.PORT_JOY1 = 1;
@@ -3740,54 +3927,112 @@ void UpdateKeyMap(uint8_t * Data)
 
 }
 
-void UpdateJoyMap(uint8_t * Data, uint8_t usbNum)
+void PrintJoystickState(uint8_t joystick)
 {
-    if (usbNum == 1)    //Joystick1
+  const uint8_t reportLength = USB_DEV_CONTROL.JOYSTICK_REPORT_LENGTH[joystick];
+  const uint8_t *report = USB_DEV_CONTROL.JOYSTICK_REPORT[joystick];
+
+  printf("JOY%u raw[%u]:", joystick + 1, reportLength);
+  for (uint8_t index = 0; index < reportLength; index++)
+  {
+    printf(" %02X", report[index]);
+  }
+
+  if (USB_DEV_CONTROL.JOYSTICK_CALIBRATION[joystick].valid)
+  {
+    printf("  U%u D%u L%u R%u B1:%u B2:%u",
+           IsJoystickControlActive(joystick, JOYSTICK_UP) ? 1 : 0,
+           IsJoystickControlActive(joystick, JOYSTICK_DOWN) ? 1 : 0,
+           IsJoystickControlActive(joystick, JOYSTICK_LEFT) ? 1 : 0,
+           IsJoystickControlActive(joystick, JOYSTICK_RIGHT) ? 1 : 0,
+           IsJoystickControlActive(joystick, JOYSTICK_BUTTON_1) ? 1 : 0,
+           IsJoystickControlActive(joystick, JOYSTICK_BUTTON_2) ? 1 : 0);
+  }
+  else
+  {
+    printf("  [uncalibrated]");
+  }
+
+  printf("  J1 X=%u Y=%u F=%u%u  J2 X=%u Y=%u F=%u%u\n",
+         USB_DEV_CONTROL.JOY1_X_AXIS, USB_DEV_CONTROL.JOY1_Y_AXIS,
+         USB_DEV_CONTROL.JOY1_BUTT1, USB_DEV_CONTROL.JOY1_BUTT2,
+         USB_DEV_CONTROL.JOY2_X_AXIS, USB_DEV_CONTROL.JOY2_Y_AXIS,
+         USB_DEV_CONTROL.JOY2_BUTT1, USB_DEV_CONTROL.JOY2_BUTT2);
+}
+
+void UpdateJoyMap(uint8_t * Data, uint8_t dataLength, uint8_t usbNum)
+{
+  if (usbNum != USB_DEV_CONTROL.PORT_JOY1 && usbNum != USB_DEV_CONTROL.PORT_JOY2)
+  {
+    return;
+  }
+
+  const uint8_t joystick = usbNum == USB_DEV_CONTROL.PORT_JOY1 ? 0 : 1;
+  const uint8_t reportLength = min(dataLength, static_cast<uint8_t>(JOYSTICK_REPORT_SIZE));
+
+  memcpy(USB_DEV_CONTROL.JOYSTICK_REPORT[joystick], Data, reportLength);
+  memset(USB_DEV_CONTROL.JOYSTICK_REPORT[joystick] + reportLength, 0,
+         JOYSTICK_REPORT_SIZE - reportLength);
+  USB_DEV_CONTROL.JOYSTICK_REPORT_LENGTH[joystick] = reportLength;
+
+  uint8_t xAxis;
+  uint8_t yAxis;
+  uint8_t button1;
+  uint8_t button2;
+
+  if (USB_DEV_CONTROL.JOYSTICK_CALIBRATION[joystick].valid)
+  {
+    const bool up = IsJoystickControlActive(joystick, JOYSTICK_UP);
+    const bool down = IsJoystickControlActive(joystick, JOYSTICK_DOWN);
+    const bool left = IsJoystickControlActive(joystick, JOYSTICK_LEFT);
+    const bool right = IsJoystickControlActive(joystick, JOYSTICK_RIGHT);
+    xAxis = (left == right) ? 128 : (left ? 0 : 255);
+    yAxis = (up == down) ? 128 : (up ? 0 : 255);
+    button1 = IsJoystickControlActive(joystick, JOYSTICK_BUTTON_1) ? 0 : 1;
+    button2 = IsJoystickControlActive(joystick, JOYSTICK_BUTTON_2) ? 0 : 1;
+  }
+  else if (dataLength >= 2)
+  {
+    const uint8_t buttonBits = dataLength > 4 ? Data[4] : 0;
+    xAxis = Data[0];
+    yAxis = Data[1];
+    button1 = (buttonBits & 0x10) ? 0 : 1;
+    button2 = (buttonBits & 0x20) ? 0 : 1;
+  }
+  else
+  {
+    return;
+  }
+
+  if (joystick == 0)
+  {
+    USB_DEV_CONTROL.JOY1_X_AXIS = xAxis;
+    USB_DEV_CONTROL.JOY1_Y_AXIS = yAxis;
+    USB_DEV_CONTROL.JOY1_BUTT1 = button1;
+    USB_DEV_CONTROL.JOY1_BUTT2 = button2;
+  }
+  else
+  {
+    USB_DEV_CONTROL.JOY2_X_AXIS = xAxis;
+    USB_DEV_CONTROL.JOY2_Y_AXIS = yAxis;
+    USB_DEV_CONTROL.JOY2_BUTT1 = button1;
+    USB_DEV_CONTROL.JOY2_BUTT2 = button2;
+  }
+
+  //One pad drives both CP400 axis pairs, since games differ on which joystick they read.
+  if (USB_DEV_CONTROL.JOYSTICK_REPORT_LENGTH[joystick ^ 1] == 0)
+  {
+    if (joystick == 0)
     {
-        USB_DEV_CONTROL.JOY1_X_AXIS = (Data[0]>>0);
-        USB_DEV_CONTROL.JOY1_Y_AXIS = (Data[1]>>0);
-        USB_DEV_CONTROL.JOY1_BUTT1 = ((Data[4]<<3) & 0b10000000);
-        USB_DEV_CONTROL.JOY1_BUTT2 = ((Data[4]<<2) & 0b10000000);
-        if (USB_DEV_CONTROL.JOY1_BUTT1 !=0)
-        {
-            USB_DEV_CONTROL.JOY1_BUTT1 = 0;
-        }
-        else
-        {
-            USB_DEV_CONTROL.JOY1_BUTT1 = 0x01;
-        }
-        if (USB_DEV_CONTROL.JOY1_BUTT2 !=0)
-        {
-            USB_DEV_CONTROL.JOY1_BUTT2 = 0;
-        }
-        else
-        {
-            USB_DEV_CONTROL.JOY1_BUTT2 = 0x01;
-        }
+      USB_DEV_CONTROL.JOY2_X_AXIS = xAxis;
+      USB_DEV_CONTROL.JOY2_Y_AXIS = yAxis;
     }
-    else if (usbNum == 2)    //Joystick2
+    else
     {
-        USB_DEV_CONTROL.JOY2_X_AXIS = (Data[0]>>0);
-        USB_DEV_CONTROL.JOY2_Y_AXIS = (Data[1]>>0);
-        USB_DEV_CONTROL.JOY2_BUTT1 = ((Data[4]<<3) & 0b10000000);
-        USB_DEV_CONTROL.JOY2_BUTT2 = ((Data[4]<<2) & 0b10000000);
-        if (USB_DEV_CONTROL.JOY2_BUTT1 !=0)
-        {
-            USB_DEV_CONTROL.JOY2_BUTT1 = 0;
-        }
-        else
-        {
-            USB_DEV_CONTROL.JOY2_BUTT1 = 0x01;
-        }
-        if (USB_DEV_CONTROL.JOY2_BUTT2 !=0)
-        {
-            USB_DEV_CONTROL.JOY2_BUTT2 = 0;
-        }
-        else
-        {
-            USB_DEV_CONTROL.JOY2_BUTT2 = 0x01;
-        }
+      USB_DEV_CONTROL.JOY1_X_AXIS = xAxis;
+      USB_DEV_CONTROL.JOY1_Y_AXIS = yAxis;
     }
+  }
 }
 
 //-----------------End USB CP400 MAP--------------------------------------------
