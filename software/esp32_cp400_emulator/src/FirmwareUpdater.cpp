@@ -110,7 +110,7 @@ void flashFromSD(const char* filename)
     }
 }
 
-bool copyFile(const char* srcFilename, const char* destFilename)
+bool copyFile(const char* srcFilename, const char* destFilename, FirmwareProgressFn progress)
 {
     // Check if source file exists
     if (!SD_MMC.exists(srcFilename))
@@ -146,11 +146,25 @@ bool copyFile(const char* srcFilename, const char* destFilename)
     size_t bytesRead;
     size_t bytesWritten = 0;
     bool foundSeparator = false;
+    const size_t totalSize = srcFile.size();
+    size_t bytesProcessed = 0;
+    uint8_t lastPercent = 255;
 
     // Copy the file chunk by chunk
     while ((bytesRead = srcFile.read(buf, sizeof(buf))) > 0)
     {
         size_t startIndex = 0;
+
+        bytesProcessed += bytesRead;
+        if (progress != nullptr && totalSize > 0)
+        {
+            const uint8_t percent = (uint8_t)((uint64_t)bytesProcessed * 100 / totalSize);
+            if (percent != lastPercent)
+            {
+                lastPercent = percent;
+                progress(percent);
+            }
+        }
 
         if (!foundSeparator)
         {
@@ -259,7 +273,7 @@ bool copyFile1(const char* srcFilename, const char* destFilename)
 
 // Function to read a file byte by byte
 // Calls user code on each byte
-bool ValidFirmwareFile(const char* filename)
+bool ValidFirmwareFile(const char* filename, FirmwareProgressFn progress)
 {
     uint8_t ValidateSource[15];
     uint32_t ValidateSourceConverted;
@@ -283,10 +297,24 @@ bool ValidFirmwareFile(const char* filename)
     uint8_t byteValue;
     uint8_t StateMachine = 0;
     uint32_t loop1 = 0;
+    const size_t totalSize = file.size();
+    size_t bytesProcessed = 0;
+    uint8_t lastPercent = 255;
     // Read the file byte by byte
     while (file.available())
     {
         byteValue = file.read(); // Read one byte
+
+        bytesProcessed++;
+        if (progress != nullptr && totalSize > 0)
+        {
+            const uint8_t percent = (uint8_t)((uint64_t)bytesProcessed * 100 / totalSize);
+            if (percent != lastPercent)
+            {
+                lastPercent = percent;
+                progress(percent);
+            }
+        }
         if (byteValue== '-' && StateMachine == 0)
         {
             StateMachine = 1;

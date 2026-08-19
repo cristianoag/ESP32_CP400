@@ -100,7 +100,7 @@ From `software/esp32_cp400_emulator`, generate a firmware package for the F12 up
 make firmware
 ```
 
-The command builds the configured PlatformIO environment and creates a versioned package such as `dist/ESP32_CP400-1.10.FLH`. Copy that `.FLH` file to the root of the CP400 microSD card, then select **Firmware update** from the F12 menu.
+The command builds the configured PlatformIO environment and creates a versioned package such as `dist/ESP32_CP400-1.11.FLH`. Copy that `.FLH` file to the root of the CP400 microSD card, then select **Firmware update** from the F12 menu.
 
 Set the firmware version with `FW_VERSION` near the top of the Makefile, using one major digit and two minor digits. It is compiled into the F12 menu and used in the package filename. A one-off version can be built without editing the file:
 

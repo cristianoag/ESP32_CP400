@@ -29,6 +29,9 @@ extern void line(int x0, int y0, int x1, int y1, int rgb);
 
 void MENU_DisplayGIMEchar(uint8_t charNum, uint8_t ODDbyte, uint16_t Xpos, uint16_t Ypos, uint8_t ForeColor, uint8_t BackColor);
 void DrawText(const char *text, uint8_t Xpos, uint8_t Ypos, uint8_t XpixOffset, uint8_t YpixOffset, uint8_t ForeColor, uint8_t BackColor);
+void DrawScreenFrame(const char *title, const char *hint1, const char *hint2);
+void DrawProgressBar(uint8_t row, uint8_t percent);
+void DrawProgressScreen(const char *message, uint8_t percent);
 void EMULATOR_Menu(void);
 void EMU_Draw_Menu(void);
 void BackDisplay(void);

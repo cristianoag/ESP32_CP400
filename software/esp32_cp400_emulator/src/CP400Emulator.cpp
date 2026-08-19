@@ -47,12 +47,13 @@ USB_DEVICES_CTRL USB_DEV_CONTROL;
 
 
 
-  #define DP_P0  18  // always enabled
-  #define DM_P0  17  // always enabled
-  #define DP_P1  12
-  #define DM_P1  11
-  #define DP_P2  16
-  #define DM_P2  15
+  //Each pin pair is one USB connector: P0 keyboard, P1 joystick 1, P2 joystick 2.
+  #define DP_P0  12  // always enabled
+  #define DM_P0  11  // always enabled
+  #define DP_P1  16
+  #define DM_P1  15
+  #define DP_P2  18
+  #define DM_P2  17
   #define DP_P3  -1
   #define DM_P3  -1
 
@@ -727,7 +728,7 @@ void InitPeripherals_and_Others(void)
   sf.is_JOY2_B1_WasPressed = false;
   sf.is_JOY2_B2_WasPressed = false;
   sf.is_LastKeyboardScanned = false;
-  sf.JoystickDebug = true;
+  sf.JoystickDebug = false;
 //------------Init of Disk Registers------
 
   DiskAccess.IsinReadProcess = false;

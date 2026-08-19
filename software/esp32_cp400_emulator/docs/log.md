@@ -3,6 +3,20 @@
 This log tracks user-visible changes to the ESP32 CP400 emulator firmware.
 Versions use one major digit and two minor digits, for example 1.10 and 1.11.
 
+## 1.11 - 2026-08-19
+
+### Added
+
+- Added a progress gauge that runs while a firmware update is validated and copied.
+
+### Changed
+
+- Moved the USB keyboard port to GPIO11 and GPIO12, joystick 1 to GPIO15 and GPIO16, and joystick 2 to GPIO17 and GPIO18, to simplify cable routing on the board.
+- Gave every F12 screen the same layout, with the product name and screen title in the header, matching separator lines, and key hints in the footer. The disk image picker, firmware update screens, and error messages previously used their own styles.
+- Renamed the "Joystick calibration" menu entry to "Joystick setup".
+- Turned the joystick Serial debug output off by default.
+- Listed only files with a matching extension when choosing a firmware or disk image, hiding folders such as System Volume Information that could not be opened anyway.
+
 ## 1.10 - 2026-08-18
 
 ### Added

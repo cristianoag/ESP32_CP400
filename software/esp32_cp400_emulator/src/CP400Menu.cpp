@@ -29,8 +29,8 @@ extern DriveStruct Disk_Drive;
 
 extern void flashFromSD(const char* filename);
 extern void InitFilesystem(void);
-extern bool copyFile(const char* srcFilename, const char* destFilename);
-extern bool ValidFirmwareFile(const char* filename);
+extern bool copyFile(const char* srcFilename, const char* destFilename, void (*progress)(uint8_t));
+extern bool ValidFirmwareFile(const char* filename, void (*progress)(uint8_t));
 
 constexpr uint8_t MENU_X_ORIGIN = 6;
 constexpr uint8_t MENU_Y_ORIGIN = 8;
@@ -80,14 +80,110 @@ void DrawMenuLine(int x0, int y0, int x1, int y1, int color)
          RGB332ToVGAPacked(color));
 }
 
-void ShowMenuError(const char *message)
+constexpr uint8_t MENU_TEXT_COLUMNS = 44;
+constexpr uint8_t MENU_CONTENT_ROW = 3;
+constexpr uint8_t MENU_ACCENT_COLOR = 0b00011100;
+constexpr uint8_t MENU_TEXT_COLOR = 255;
+constexpr uint8_t MENU_ALERT_COLOR = 0b11100000;
+constexpr uint8_t MENU_PROGRESS_BAR_ROW = 5;
+constexpr uint8_t MENU_PROGRESS_TEXT_ROW = 7;
+
+static void RenderScreenFrame(const char *title, const char *hint1, const char *hint2)
+{
+    DrawText("ESP32 Clone Series", 0, 0, 0, 0, MENU_TEXT_COLOR, 0);
+
+    const size_t titleLength = strlen(title);
+    if (titleLength < MENU_TEXT_COLUMNS)
+    {
+        DrawText(title, (uint8_t)(MENU_TEXT_COLUMNS - titleLength), 0, 0, 0,
+                 MENU_ACCENT_COLOR, 0);
+    }
+
+    DrawMenuLine(0, 10, MENU_CONTENT_RIGHT, 10, MENU_ACCENT_COLOR);
+
+    const bool secondHint = hint2 != nullptr && hint2[0] != '\0';
+    const uint16_t footerLine = secondHint ? 199 : 207;
+    DrawMenuLine(0, footerLine, MENU_CONTENT_RIGHT, footerLine, MENU_ACCENT_COLOR);
+
+    DrawText(hint1, 0, secondHint ? 26 : 27, 0, 0, MENU_TEXT_COLOR, 0);
+    if (secondHint)
+    {
+        DrawText(hint2, 0, 27, 0, 0, MENU_TEXT_COLOR, 0);
+    }
+}
+
+//Shared frame for every F12 screen: product name, right-aligned title, separators and hints.
+void DrawScreenFrame(const char *title, const char *hint1, const char *hint2)
 {
     vga->clear(0);
     vga->show();
     vga->clear(0);
-    DrawText("microSD error", 0, 8, 0, 0, 0b11100000, 0);
-    DrawText(message, 0, 10, 0, 0, 255, 0);
-    DrawText("Returning to the main menu...", 0, 12, 0, 0, 255, 0);
+
+    RenderScreenFrame(title, hint1, hint2);
+}
+
+void DrawProgressBar(uint8_t row, uint8_t percent)
+{
+    if (percent > 100)
+    {
+        percent = 100;
+    }
+
+    const uint16_t top = (uint16_t)row * 8;
+    const uint16_t bottom = top + 9;
+
+    DrawMenuLine(0, top, MENU_CONTENT_RIGHT, top, MENU_ACCENT_COLOR);
+    DrawMenuLine(0, bottom, MENU_CONTENT_RIGHT, bottom, MENU_ACCENT_COLOR);
+    DrawMenuLine(0, top, 0, bottom, MENU_ACCENT_COLOR);
+    DrawMenuLine(MENU_CONTENT_RIGHT, top, MENU_CONTENT_RIGHT, bottom, MENU_ACCENT_COLOR);
+
+    const uint16_t span = (uint16_t)(((uint32_t)(MENU_CONTENT_RIGHT - 4) * percent) / 100);
+    if (span > 0)
+    {
+        for (uint16_t fill = top + 2; fill + 2 <= bottom; fill++)
+        {
+            DrawMenuLine(2, fill, 2 + span, fill, MENU_TEXT_COLOR);
+        }
+    }
+}
+
+static const char *ProgressMessage = "";
+
+static void DrawProgressValue(uint8_t percent)
+{
+    char value[8];
+    snprintf(value, sizeof(value), "%u%%", percent);
+    DrawProgressBar(MENU_PROGRESS_BAR_ROW, percent);
+    DrawText(value, 0, MENU_PROGRESS_TEXT_ROW, 0, 0, MENU_ACCENT_COLOR, 0);
+}
+
+//Both buffers get the same frame, otherwise each update would flash the blank one.
+void DrawProgressScreen(const char *message, uint8_t percent)
+{
+    for (uint8_t buffer = 0; buffer < 2; buffer++)
+    {
+        vga->clear(0);
+        RenderScreenFrame("Firmware update", "Do not switch off the CP400.", nullptr);
+        DrawText(message, 0, MENU_CONTENT_ROW, 0, 0, MENU_TEXT_COLOR, 0);
+        DrawProgressValue(percent);
+        vga->show();
+    }
+}
+
+//Only the gauge changes during an operation, so the frame is left untouched.
+static void FirmwareProgressUpdate(uint8_t percent)
+{
+    for (uint8_t buffer = 0; buffer < 2; buffer++)
+    {
+        DrawProgressValue(percent);
+        vga->show();
+    }
+}
+
+void ShowMenuError(const char *message)
+{
+    DrawScreenFrame("Error", "Returning to the previous screen...", nullptr);
+    DrawText(message, 0, MENU_CONTENT_ROW, 0, 0, MENU_ALERT_COLOR, 0);
     vga->show();
     vTaskDelay(2000);
 }
@@ -127,37 +223,22 @@ int8_t FillFileBuffer(uint16_t startIndex, int8_t MaxIndex, const char* fileExt)
         const char* name = file.name();
         bool validEntry = false;
 
-        // === FILTRE DES ENTRÉES ===
-        if (file.isDirectory())
-        {
-            validEntry = true; // Dossiers permis
-        }
-        else
+        //Directories cannot be opened as images, so only matching files are listed.
+        if (!file.isDirectory())
         {
             const char* ext = strrchr(name, '.');
             if (ext && strcasecmp(ext, fileExt) == 0)            
             {
-                validEntry = true; // Seulement .DSK permis
+                validEntry = true;
             }
         }
-        // ==========================
 
         if (currentIndex >= startIndex && validEntry)
         {
-            if (file.isDirectory())
-            {
-                snprintf((char*)FileArray.FileBuffer[bufferIndex],
-                         255,
-                         "/%s",
-                         name);
-            }
-            else
-            {
-                snprintf((char*)FileArray.FileBuffer[bufferIndex],
-                         255,
-                         "%s",
-                         name);
-            }
+            snprintf((char*)FileArray.FileBuffer[bufferIndex],
+                     255,
+                     "%s",
+                     name);
 
             bufferIndex++;
         }
@@ -485,11 +566,8 @@ void RunFirmwareUpdateFlow(void)
         return;
     }
 
-    vga->clear(0);
-    vga->show();
-    vga->clear(0);
-    DrawText("Install selected firmware?", 0, 10, 0, 0, 255, 0);
-    DrawText("Y: install   N/ESC: cancel", 0, 12, 0, 0, 0b11100000, 0);
+    DrawScreenFrame("Firmware update", "Y install   N or ESC cancel", nullptr);
+    DrawText("Install the selected firmware?", 0, MENU_CONTENT_ROW, 0, 0, MENU_TEXT_COLOR, 0);
     vga->show();
 
     while (1)
@@ -497,29 +575,27 @@ void RunFirmwareUpdateFlow(void)
         switch (sf.DIRECT_Key_Code)
         {
         case MENU_Y:
-            vga->clear(0);
-            DrawText("Checking firmware...", 0, 10, 0, 0, 255, 0);
-            vga->show();
+            ProgressMessage = "Checking firmware...";
+            DrawProgressScreen(ProgressMessage, 0);
 
-            if (!ValidFirmwareFile(file))
+            if (!ValidFirmwareFile(file, FirmwareProgressUpdate))
             {
                 ShowMenuError("Invalid firmware file.");
                 return;
             }
 
-            vga->clear(0);
-            DrawText("Firmware is valid.", 0, 10, 0, 0, 0b00011100, 0);
-            DrawText("Copying update file...", 0, 12, 0, 0, 255, 0);
-            vga->show();
+            ProgressMessage = "Copying update file...";
+            DrawProgressScreen(ProgressMessage, 0);
 
-            if (!copyFile(file, "/qprcx.rty"))
+            if (!copyFile(file, "/qprcx.rty", FirmwareProgressUpdate))
             {
                 ShowMenuError("Unable to copy firmware.");
                 return;
             }
 
-            vga->clear(0);
-            DrawText("Rebooting to install firmware...", 0, 12, 0, 0, 255, 0);
+            DrawScreenFrame("Firmware update", "Do not switch off the CP400.", nullptr);
+            DrawText("Rebooting to install firmware...", 0, MENU_CONTENT_ROW, 0, 0,
+                     MENU_TEXT_COLOR, 0);
             vga->show();
             vTaskDelay(2000);
             esp_restart();
@@ -546,16 +622,11 @@ void WaitForMenuKeyRelease(void)
 
 void DrawJoystickCalibrationScreen(uint8_t joystick, const char *line1, const char *line2)
 {
-    char title[24];
-    snprintf(title, sizeof(title), "Joystick %u calibration", joystick + 1);
-    vga->clear(0);
-    vga->show();
-    vga->clear(0);
-    DrawText(title, 0, 0, 0, 0, 255, 0);
-    DrawMenuLine(0, 10, MENU_CONTENT_RIGHT, 10, 0b00011100);
-    DrawText(line1, 0, 8, 0, 0, 255, 0);
-    DrawText(line2, 0, 10, 0, 0, 255, 0);
-    DrawText("ENTER continue  ESC cancel", 0, 27, 0, 0, 255, 0);
+    char title[16];
+    snprintf(title, sizeof(title), "Joystick %u", joystick + 1);
+    DrawScreenFrame(title, "ENTER continue  ESC cancel", nullptr);
+    DrawText(line1, 0, MENU_CONTENT_ROW, 0, 0, MENU_TEXT_COLOR, 0);
+    DrawText(line2, 0, MENU_CONTENT_ROW + 2, 0, 0, MENU_TEXT_COLOR, 0);
     vga->show();
 }
 
@@ -711,11 +782,7 @@ void RunJoystickCalibration(uint8_t joystick)
 
 void DrawJoystickCalibrationMenu(uint8_t selectedJoystick)
 {
-    vga->clear(0);
-    vga->show();
-    vga->clear(0);
-    DrawText("Joystick calibration", 0, 0, 0, 0, 255, 0);
-    DrawMenuLine(0, 10, MENU_CONTENT_RIGHT, 10, 0b00011100);
+    DrawScreenFrame("Joystick setup", "UP/DOWN move  ENTER select  ESC back", nullptr);
     DrawSelectableRow(3, "Joystick 1",
                       USB_DEV_CONTROL.JOYSTICK_CALIBRATION[0].valid ? "Calibrated >" : "Calibrate >",
                       selectedJoystick == 0);
@@ -725,8 +792,6 @@ void DrawJoystickCalibrationMenu(uint8_t selectedJoystick)
     DrawSelectableRow(5, "Serial debug", sf.JoystickDebug ? "< Enabled >" : "< Disabled >",
                       selectedJoystick == 2);
     DrawSelectableRow(6, "Back", "Enter", selectedJoystick == 3);
-    DrawMenuLine(0, 207, MENU_CONTENT_RIGHT, 207, 0b00011100);
-    DrawText("UP/DOWN move  ENTER select  ESC back", 0, 27, 0, 0, 255, 0);
 }
 
 void JoystickCalibrationMenu(void)
@@ -947,13 +1012,9 @@ void DiskMenuChoose(void)
 
 void DrawMainMenuOptions(uint8_t selectedItem)
 {
-    vga->clear(0);
-    vga->show();
-    vga->clear(0);
-    DrawText("ESP32 Clone Series", 0, 0, 0, 0, 255, 0);
-    DrawText("Firmware", 30, 0, 0, 0, 255, 0);
-    DrawText(FW_VERSION, 39, 0, 0, 0, 0b00011100, 0);
-    DrawMenuLine(0, 10, MENU_CONTENT_RIGHT, 10, 0b00011100);
+    char title[24];
+    snprintf(title, sizeof(title), "Firmware %s", FW_VERSION);
+    DrawScreenFrame(title, "UP/DOWN move  LEFT/RIGHT change", "ENTER select  ESC exit");
 
     DrawSelectableRow(3, "Disk drives", "Enter >", selectedItem == MAIN_MENU_DISK_DRIVES);
     DrawSelectableRow(4, "Firmware update", "Enter >", selectedItem == MAIN_MENU_FIRMWARE);
@@ -962,25 +1023,16 @@ void DrawMainMenuOptions(uint8_t selectedItem)
     DrawSelectableRow(6, "Boot Disk ROM",
                       selectedDiskRom == DiskRomSelection::CP400 ? "< CP400 >" : "< CoCo 2 >",
                       selectedItem == MAIN_MENU_DISK_ROM);
-    DrawSelectableRow(7, "Joystick calibration", "Enter >",
+    DrawSelectableRow(7, "Joystick setup", "Enter >",
                       selectedItem == MAIN_MENU_JOYSTICK_CALIBRATION);
     DrawSelectableRow(8, "Reboot CP400", "Enter", selectedItem == MAIN_MENU_REBOOT);
     DrawSelectableRow(9, "Exit menu", "Enter", selectedItem == MAIN_MENU_EXIT);
-
-    DrawMenuLine(0, 199, MENU_CONTENT_RIGHT, 199, 0b00011100);
-    DrawText("UP/DOWN move  LEFT/RIGHT change", 0, 26, 0, 0, 255, 0);
-    DrawText("ENTER select  ESC exit", 0, 27, 0, 0, 255, 0);
 }
 
 
 void DrawMenuDiskChoose(uint8_t selectedDrive)
 {
-    vga->clear(0);
-    vga->show();
-    vga->clear(0);
-    DrawText("ESP32 Clone Series", 0, 0, 0, 0, 255, 0);
-    DrawText("Disk drives", 32, 0, 0, 0, 0b00011100, 0);
-    DrawMenuLine(0, 10, MENU_CONTENT_RIGHT, 10, 0b00011100);
+    DrawScreenFrame("Disk drives", "UP/DOWN move  ENTER assign  ESC back", nullptr);
 
     for (uint8_t drive = 0; drive < 4; drive++)
     {
@@ -991,22 +1043,17 @@ void DrawMenuDiskChoose(uint8_t selectedDrive)
                                  : "<empty>";
         DrawSelectableRow(3 + drive, label, diskName, drive == selectedDrive);
     }
-
-    DrawMenuLine(0, 207, MENU_CONTENT_RIGHT, 207, 0b00011100);
-    DrawText("UP/DOWN move  ENTER assign  ESC back", 0, 27, 0, 0, 255, 0);
 }
 
 void DrawDiskMenuChoose_1(void)
 {
-    DrawText("Select a disk image", 0, 0, 0, 0, 255, 0);
-    DrawText("Arrows move  Pg keys page  Enter select", 0, 25, 0, 0, 255, 0);
+    DrawScreenFrame("Disk image", "Arrows move  PgUp/PgDn page", "ENTER select  ESC back");
     return;
 }
 
 void DrawFirmwareUpdateMenuChoose(void)
 {
-    DrawText("Select firmware to install", 0, 0, 0, 0, 255, 0);
-    DrawText("Arrows move  Enter select  ESC back", 0, 25, 0, 0, 255, 0);
+    DrawScreenFrame("Firmware update", "Arrows move  ENTER select  ESC back", nullptr);
     return;
 }
 

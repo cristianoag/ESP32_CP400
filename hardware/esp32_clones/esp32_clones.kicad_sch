@@ -6,8 +6,8 @@
 	(paper "A4")
 	(title_block
 		(title "ESP32 Clones")
-		(date "2026-08-02")
-		(rev "1.0")
+		(date "2026-08-19")
+		(rev "1.1")
 		(company "The Retro Hacker")
 		(comment 2 "Commercial-ShareAlike 4.0 Internacional License")
 		(comment 3 "This work is licensed under a")
@@ -5078,6 +5078,10 @@
 		(uuid "85f3e927-8e13-471d-9ae3-405227773227")
 	)
 	(no_connect
+		(at 152.4 119.38)
+		(uuid "919f8743-8641-4883-8986-1a04dab9e254")
+	)
+	(no_connect
 		(at 119.38 82.55)
 		(uuid "9bbb0794-61eb-46c8-9bf6-11588d234c49")
 	)
@@ -5140,10 +5144,6 @@
 	(no_connect
 		(at 96.52 128.27)
 		(uuid "f9bfb3c4-dd3c-4ed8-91b7-311a8422d448")
-	)
-	(no_connect
-		(at 152.4 116.84)
-		(uuid "fa4915f5-3057-407c-bce5-061971e2685a")
 	)
 	(wire
 		(pts
@@ -5387,6 +5387,16 @@
 	)
 	(wire
 		(pts
+			(xy 154.94 116.84) (xy 154.94 133.35)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "28e788a9-c736-4d1a-9311-353ee1e5b6de")
+	)
+	(wire
+		(pts
 			(xy 99.06 128.27) (xy 99.06 125.73)
 		)
 		(stroke
@@ -5597,13 +5607,13 @@
 	)
 	(wire
 		(pts
-			(xy 152.4 133.35) (xy 245.11 133.35)
+			(xy 152.4 116.84) (xy 154.94 116.84)
 		)
 		(stroke
 			(width 0)
 			(type default)
 		)
-		(uuid "502a90bd-2c04-45b4-8e46-cc77dedc9666")
+		(uuid "4ff881f5-81a8-49f5-b5b4-4a2c017066d5")
 	)
 	(wire
 		(pts
@@ -5837,16 +5847,6 @@
 	)
 	(wire
 		(pts
-			(xy 152.4 133.35) (xy 152.4 119.38)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "73319520-bde3-4dde-b69e-93e3cf23bbc6")
-	)
-	(wire
-		(pts
 			(xy 156.21 129.54) (xy 156.21 114.3)
 		)
 		(stroke
@@ -5944,6 +5944,16 @@
 			(type default)
 		)
 		(uuid "8868d5a9-b593-4e97-8574-6c3aeeafd504")
+	)
+	(wire
+		(pts
+			(xy 154.94 133.35) (xy 245.11 133.35)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "8be8250e-d9b8-4581-8240-5e0459e26000")
 	)
 	(wire
 		(pts

@@ -27,10 +27,12 @@
 
 
 
+typedef void (*FirmwareProgressFn)(uint8_t percent);
+
 void InitFilesystem(void);
-bool copyFile(const char* srcFilename, const char* destFilename);
+bool copyFile(const char* srcFilename, const char* destFilename, FirmwareProgressFn progress);
 void flashFromSD(const char* filename);
-bool ValidFirmwareFile(const char* filename);
+bool ValidFirmwareFile(const char* filename, FirmwareProgressFn progress);
 uint32_t asciiToUint32(const char* str);
 
 
