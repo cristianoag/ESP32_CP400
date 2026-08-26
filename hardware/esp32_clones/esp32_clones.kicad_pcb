@@ -3454,7 +3454,7 @@
 		(uuid "a6509392-7415-439b-bd55-add412957537")
 		(at 177.725 113.495)
 		(property "Reference" "J4"
-			(at -1.90748 -5.46808 0)
+			(at -8.275 4.855 0)
 			(layer "F.SilkS")
 			(uuid "e78a9a71-db4f-43f8-a303-21947c9b3ff1")
 			(effects
@@ -3464,8 +3464,8 @@
 				)
 			)
 		)
-		(property "Value" "USB_A"
-			(at 4.32453 11.828855 0)
+		(property "Value" "Keyboard"
+			(at 0.025 -5.295 0)
 			(layer "F.Fab")
 			(uuid "66bb43d4-db3a-4627-8a66-8280411227e9")
 			(effects
@@ -5055,7 +5055,7 @@
 		(uuid "c51c6f74-fd3e-4693-a158-65c2eaaa0a17")
 		(at 157.425 113.495)
 		(property "Reference" "J2"
-			(at -1.90748 -5.46808 0)
+			(at -8.175 4.905 0)
 			(layer "F.SilkS")
 			(uuid "22401850-f422-46d2-b7f4-a09066fd979a")
 			(effects
@@ -5065,8 +5065,8 @@
 				)
 			)
 		)
-		(property "Value" "USB_A"
-			(at 4.32453 11.828855 0)
+		(property "Value" "Joystick 2"
+			(at -0.025 -5.295 0)
 			(layer "F.Fab")
 			(uuid "5d92e6fa-23b7-4269-828b-4ed9d55f397d")
 			(effects
@@ -5989,7 +5989,7 @@
 		(uuid "fd961c5d-d14a-42dc-abe5-38abfd8a19eb")
 		(at 137.125 113.495)
 		(property "Reference" "J3"
-			(at -1.90748 -5.46808 0)
+			(at -8.375 4.805 0)
 			(layer "F.SilkS")
 			(uuid "f0740ad1-5863-413a-8b12-b88225d18a1b")
 			(effects
@@ -5999,9 +5999,9 @@
 				)
 			)
 		)
-		(property "Value" "USB_A"
-			(at 4.32453 11.828855 0)
-			(layer "F.Fab")
+		(property "Value" "Joystick 1"
+			(at 0.025 -5.295 0)
+			(layer "F.SilkS")
 			(uuid "9adbff16-d0d0-4ec1-bf71-8b2cb635a3c4")
 			(effects
 				(font

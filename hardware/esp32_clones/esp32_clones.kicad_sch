@@ -9726,7 +9726,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "USB_A"
+		(property "Value" "Keyboard"
 			(at 223.52 30.4799 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9898,7 +9898,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "USB_A"
+		(property "Value" "Joystick 1"
 			(at 187.96 30.4799 90)
 			(show_name no)
 			(do_not_autoplace no)
@@ -10231,7 +10231,7 @@
 				(justify left)
 			)
 		)
-		(property "Value" "USB_A"
+		(property "Value" "Joystick 2"
 			(at 152.4 30.4799 90)
 			(show_name no)
 			(do_not_autoplace no)
