@@ -9,7 +9,7 @@ endif
 
 PYTHON ?= python
 PIO_ENV ?= esp32-s3-devkitc-1-Modded
-FW_VERSION ?= 1.12
+FW_VERSION ?= 1.13
 OUTPUT_DIR ?= dist
 UPDATE_FILE ?= $(OUTPUT_DIR)/ESP32_CP400-$(FW_VERSION).FLH
 

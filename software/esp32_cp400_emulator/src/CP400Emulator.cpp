@@ -624,23 +624,24 @@ Mode mode1 = Mode::MODE_320x240x60_4_3;
 Mode mode2 = Mode::MODE_640x240x60;
 Mode mode3 = Mode::MODE_640x240x60_4_3;
 
-#ifndef VIDEO_Y_OFFSET
-#define VIDEO_Y_OFFSET 24
-#endif
-
-#ifndef VIDEO_GRAPHICS_X_OFFSET
-#define VIDEO_GRAPHICS_X_OFFSET 32
-#endif
-
-#if VIDEO_Y_OFFSET < 0 || VIDEO_Y_OFFSET > 48
-#error "VIDEO_Y_OFFSET must be between 0 and 48"
-#endif
-
-#if VIDEO_GRAPHICS_X_OFFSET < 0 || VIDEO_GRAPHICS_X_OFFSET > 70
-#error "VIDEO_GRAPHICS_X_OFFSET must be between 0 and 70"
-#endif
-
+constexpr uint16_t VIDEO_ACTIVE_WIDTH = 256;
 constexpr uint16_t VIDEO_ACTIVE_HEIGHT = 192;
+uint16_t VideoViewportX = (mode1.hRes - VIDEO_ACTIVE_WIDTH) / 2;
+uint16_t VideoViewportY = (mode1.vRes - VIDEO_ACTIVE_HEIGHT) / 2;
+
+#define VIDEO_GRAPHICS_X_OFFSET VideoViewportX
+#define VIDEO_Y_OFFSET VideoViewportY
+
+void SetVideoViewport(const Mode &mode)
+{
+  sf.VideoEmulatorXpixels = mode.hRes;
+  VideoViewportX = mode.hRes > VIDEO_ACTIVE_WIDTH
+                     ? (mode.hRes - VIDEO_ACTIVE_WIDTH) / 2
+                     : 0;
+  VideoViewportY = mode.vRes > VIDEO_ACTIVE_HEIGHT
+                     ? (mode.vRes - VIDEO_ACTIVE_HEIGHT) / 2
+                     : 0;
+}
 
 
 
@@ -859,19 +860,19 @@ void SetVideoMode(uint8_t VideoMode)
   switch (VideoMode)
   {
   case VIDEO_MODE_320X240_16_9:
-    sf.VideoEmulatorXpixels = 320;
+    SetVideoViewport(mode0);
     if(!vga->Reinit(pins, mode0, 8)) while(1) delay(1);
     break;
     case VIDEO_MODE_320X240_4_3:
-      sf.VideoEmulatorXpixels = mode1.hRes;
+      SetVideoViewport(mode1);
       if(!vga->Reinit(pins, mode1, 8)) while(1) delay(1);
     break;
     case VIDEO_MODE_640X240_16_9:
-      sf.VideoEmulatorXpixels = 640;  
+      SetVideoViewport(mode2);
       if(!vga->Reinit(pins, mode2, 8)) while(1) delay(1);
     break;
     case VIDEO_MODE_640X240_4_3:
-      sf.VideoEmulatorXpixels = 640;  
+      SetVideoViewport(mode3);
       if(!vga->Reinit(pins, mode3, 8)) while(1) delay(1);
     break;
   
@@ -1256,7 +1257,6 @@ void loop()
 #else
 #define WAIT_VSYNCH_LOW()  while(gpio_get_level(VSYNC_PORT) != 0) {}
 #endif
-#define X_OFFSET_32 312
 void IRAM_ATTR VideoCore(void *pvParameters) 
 {
   uint8_t ModeValue;
@@ -2494,7 +2494,7 @@ void RenderCP400GraphMode_32X16_8X12(void)
     vga->show();
     sf.CP400VideoGenMODE = CP400_GRAPH_MODE_32X16_8X12;
   }
-  gfx->fillRect(((sf.VideoEmulatorXpixels-X_OFFSET_32)>>1), VIDEO_Y_OFFSET - 1,
+  gfx->fillRect(VIDEO_GRAPHICS_X_OFFSET, VIDEO_Y_OFFSET - 1,
                 256, VIDEO_ACTIVE_HEIGHT, VDG_GREEN);
   gfx->setTextColor(0);
   uint32_t MemLoop = sf.CP400VideoPageOffset_Registers * CP400_GRAPH_OFFSET_LEN;
@@ -2504,7 +2504,7 @@ void RenderCP400GraphMode_32X16_8X12(void)
     for (uint8_t Xloop = 0; Xloop != 32; Xloop++)
     {
       tmpchar = memory[MemLoop++];
-      DisplayVDGchar(tmpchar, Xloop * 8 + ((sf.VideoEmulatorXpixels - X_OFFSET_32) >> 1),
+      DisplayVDGchar(tmpchar, Xloop * 8 + VIDEO_GRAPHICS_X_OFFSET,
                      Yloop * 12 + VIDEO_Y_OFFSET - 1);
     }
   }

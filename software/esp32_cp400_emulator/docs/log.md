@@ -3,6 +3,12 @@
 This log tracks user-visible changes to the ESP32 CP400 emulator firmware.
 Versions use one major digit and two minor digits, for example 1.10 and 1.11.
 
+## 1.13 - Unreleased
+
+### Fixed
+
+- Centered the 256x192 CP400 display area within the active VGA frame in every video mode. Graphics and text modes now share the same origin calculated from the selected VGA resolution instead of using separate manual offsets.
+
 ## 1.12 - 2026-08-29
 
 ### Changed
