@@ -32,6 +32,8 @@ extern void InitFilesystem(void);
 extern bool copyFile(const char* srcFilename, const char* destFilename, void (*progress)(uint8_t));
 extern bool ValidFirmwareFile(const char* filename, void (*progress)(uint8_t));
 
+void WaitForMenuKeyRelease(void);
+
 constexpr uint8_t MENU_X_ORIGIN = 6;
 constexpr uint8_t MENU_Y_ORIGIN = 8;
 constexpr uint16_t MENU_RIGHT_EDGE = 271;
@@ -566,9 +568,14 @@ void RunFirmwareUpdateFlow(void)
         return;
     }
 
-    DrawScreenFrame("Firmware update", "Y install   N or ESC cancel", nullptr);
+    DrawScreenFrame("Firmware update", "Press Y or N to choose", "ESC also cancels");
     DrawText("Install the selected firmware?", 0, MENU_CONTENT_ROW, 0, 0, MENU_TEXT_COLOR, 0);
+    DrawText("Y  Yes - install and reboot", 2, MENU_CONTENT_ROW + 2, 0, 0,
+             MENU_ACCENT_COLOR, 0);
+    DrawText("N  No  - cancel update", 2, MENU_CONTENT_ROW + 4, 0, 0,
+             MENU_TEXT_COLOR, 0);
     vga->show();
+    WaitForMenuKeyRelease();
 
     while (1)
     {
@@ -965,6 +972,8 @@ void DiskMenuChoose(void)
         return;
     }
 
+    WaitForMenuKeyRelease();
+
     uint8_t selectedDrive = 0;
     DrawMenuDiskChoose(selectedDrive);
     vga->show();
@@ -995,9 +1004,24 @@ void DiskMenuChoose(void)
 
         case MENU_ENTER:
             DiskMenuChoose_1(selectedDrive);
+            WaitForMenuKeyRelease();
             DrawMenuDiskChoose(selectedDrive);
             vga->show();
             vTaskDelay(150);
+            break;
+
+        case MENU_DELETE:
+            if (Disk_Drive.Name_Disk[selectedDrive][0] != '\0')
+            {
+                if (!EjectCP400Disk(selectedDrive))
+                {
+                    ShowMenuError("Unable to save disk ejection.");
+                    return;
+                }
+                DrawMenuDiskChoose(selectedDrive);
+                vga->show();
+            }
+            WaitForMenuKeyRelease();
             break;
 
         case MENU_ESC:
@@ -1032,7 +1056,7 @@ void DrawMainMenuOptions(uint8_t selectedItem)
 
 void DrawMenuDiskChoose(uint8_t selectedDrive)
 {
-    DrawScreenFrame("Disk drives", "UP/DOWN move  ENTER assign  ESC back", nullptr);
+    DrawScreenFrame("Disk drives", "UP/DOWN move  ENTER assign", "DELETE eject  ESC back");
 
     for (uint8_t drive = 0; drive < 4; drive++)
     {

@@ -3,6 +3,32 @@
 This log tracks user-visible changes to the ESP32 CP400 emulator firmware.
 Versions use one major digit and two minor digits, for example 1.10 and 1.11.
 
+## 1.12 - 2026-08-29
+
+### Changed
+
+- Moved the keyboard port to the ESP32-S3 native USB-OTG host on GPIO19 and GPIO20, so ordinary full speed USB keyboards now work. The previous bit-banged stack could only talk to low speed devices, which is why most keyboards appeared dead or never lit their indicators.
+- Requested the HID boot protocol from the keyboard, so keyboards that default to their own report layout still deliver the standard report the emulator expects.
+- Turned the native USB serial console off, because the keyboard host and the console cannot share the one USB controller. Serial output and firmware uploads now use the UART port, which already carried the boot log.
+- Kept joystick 1 and joystick 2 on the existing bit-banged stack, unchanged.
+
+### Added
+
+- Logged the keyboard's speed, vendor and product IDs, and the interface and endpoint in use, so an unsupported keyboard can be told apart from a power or wiring fault.
+- Added `make upload` to build and upload the firmware through the PC USB port configured in `platformio.ini`.
+- Added a DELETE action to eject the selected disk image from any of the four drives and persist the empty assignment.
+
+### Fixed
+
+- Removed UART debug writes from the 6809 timer interrupt. They caused an interrupt watchdog reset loop after the USB-OTG keyboard host moved the serial console from native USB CDC to UART0.
+- Showed explicit Y/Yes and N/No choices on the firmware installation confirmation screen.
+- Waited for ENTER to be released before opening the disk-drive screen, preventing the same key press from immediately opening Drive 0's file picker.
+
+### Notes
+
+- The keyboard connector must be rewired: D- goes to GPIO19 and D+ goes to GPIO20. These pads are tied to the USB PHY inside the chip and cannot be moved to other pins.
+- Keyboards containing an internal USB hub are still not supported, because this ESP-IDF version has no hub driver.
+
 ## 1.11 - 2026-08-19
 
 ### Added

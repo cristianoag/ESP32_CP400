@@ -38,6 +38,7 @@
 
 #include <ESP32-USB-Soft-Host.h>
 #include "CP400Input.h"
+#include "CP400UsbKeyboard.h"
 #define KEY_SHIFT_LEFT
 
 
@@ -47,9 +48,12 @@ USB_DEVICES_CTRL USB_DEV_CONTROL;
 
 
 
-  //Each pin pair is one USB connector: P0 keyboard, P1 joystick 1, P2 joystick 2.
-  #define DP_P0  12  // always enabled
-  #define DM_P0  11  // always enabled
+  //Each pin pair is one USB connector: P1 joystick 1, P2 joystick 2.
+  //The keyboard no longer uses the soft host. It runs on the USB-OTG controller
+  //through GPIO19 and GPIO20 so full speed keyboards enumerate, which the
+  //bit-banged stack could never do. See CP400UsbKeyboard.cpp.
+  #define DP_P0  -1
+  #define DM_P0  -1
   #define DP_P1  16
   #define DM_P1  15
   #define DP_P2  18
@@ -441,6 +445,56 @@ bool LoadConfigFromSD(void)
     f.close();
     Serial.println("Configuration loaded from SD");
     return true;
+}
+
+bool EjectCP400Disk(uint8_t DriveNumber)
+{
+  if (DriveNumber >= 4)
+  {
+    return false;
+  }
+
+  uint8_t previousName[sizeof(Disk_Drive.Name_Disk[DriveNumber])];
+  memcpy(previousName, Disk_Drive.Name_Disk[DriveNumber], sizeof(previousName));
+  memset(Disk_Drive.Name_Disk[DriveNumber], 0, sizeof(Disk_Drive.Name_Disk[DriveNumber]));
+
+  if (!SaveConfigToSD())
+  {
+    memcpy(Disk_Drive.Name_Disk[DriveNumber], previousName, sizeof(previousName));
+    return false;
+  }
+
+  uint8_t *diskMemory = nullptr;
+  switch (DriveNumber)
+  {
+  case 0:
+    diskMemory = RAM_Disk0;
+    break;
+  case 1:
+    diskMemory = RAM_Disk1;
+    break;
+  case 2:
+    diskMemory = RAM_Disk2;
+    break;
+  case 3:
+    diskMemory = RAM_Disk3;
+    break;
+  }
+
+  if (diskMemory != nullptr)
+  {
+    memset(diskMemory, 0xFF, DISK_SIZE);
+  }
+
+  if (DiskAccess.DriveSelected == DriveNumber)
+  {
+    DiskAccess.IsinReadProcess = false;
+    DiskAccess.IsInWriteProcess = false;
+    DiskAccess.RW_Process_ByteRemainingCounter = 0;
+    sf.PHYSICAL_Drive_Must_Be_Saved = false;
+  }
+
+  return true;
 }
 
 
@@ -2936,11 +2990,9 @@ void InitDisks(void)
       break;
 
       case M_FFD9:
-      Serial.println("F");
         sf.CPU_Speed = CPU_FAST;
       break;
       case M_FFD8:
-      Serial.println("S");
       sf.CPU_Speed = CPU_SLOW;
       break;
 //----------------Disk Related---------------
@@ -3029,10 +3081,6 @@ void InitDisks(void)
         DiskAccess.RW_Process_ByteRemainingCounter = 257; //Init the loop counter for data to be transfered;
         DiskAccess.TrackPos = rom[ROM_FF49];
         DiskAccess.SectorPos = rom[ROM_FF4A];
-        Serial.print("T:");
-        Serial.print(rom[ROM_FF49]);
-        Serial.print(" S:");
-        Serial.println(rom[ROM_FF4A]);
         
         MACRO_TRACK_W;
         rom[ROM_FF48] = M_DRQ_BIT_READY;  //Reset the bit
@@ -3454,11 +3502,9 @@ static void my_USB_DetectCB( uint8_t usbNum, void * dev )
 static void my_USB_PrintCB(uint8_t usbNum, uint8_t byte_depth, uint8_t* data, uint8_t data_len)
 {
   // if( myListenUSBPort != usbNum ) return;
-  if (usbNum == USB_DEV_CONTROL.PORT_KEYBOARD)
-  {
-    UpdateKeyMap(data);
-  }
-  else if (usbNum == USB_DEV_CONTROL.PORT_JOY1)
+  //The keyboard is handled by the USB-OTG host, so only the joystick ports
+  //arrive here.
+  if (usbNum == USB_DEV_CONTROL.PORT_JOY1)
   {
     UpdateJoyMap(data, data_len, usbNum);
   }
@@ -3494,8 +3540,11 @@ void Setup_USB(void)
     USH.setOnHIDDevDescCb( Default_USB_HIDDevDescCb );
     USH.setOnEPDescCb( Default_USB_EPDescCb );
 
+    //Joysticks only. The soft host timer also clocks the 6809, so it keeps
+    //running even though the keyboard port has moved off it.
     USH.init( USB_Pins_Config, my_USB_DetectCB, my_USB_PrintCB );
 
+    CP400UsbKeyboard_Start();
 
 }
 

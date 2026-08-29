@@ -142,6 +142,7 @@ extern DiskRomSelection selectedDiskRom;
 #define MENU_ENTER 40
 #define MENU_PGDWN 78
 #define MENU_PGUP 75
+#define MENU_DELETE 76
 #define MENU_R 21
 #define MENU_F 9
 #define MENU_D 7
@@ -305,6 +306,7 @@ void WriteDiskByte(uint32_t BytePos, uint8_t ByteData);
 uint8_t ReadDiskByte(uint32_t BytePos);
 
 bool ReadCP400DiskImage(const char* filename, uint8_t DriveNumber);
+bool EjectCP400Disk(uint8_t DriveNumber);
 bool WriteCP400DiskImage(const char* filename, uint8_t DriveNumber);
 bool SaveConfigToSD(void);
 bool LoadConfigFromSD(void);
